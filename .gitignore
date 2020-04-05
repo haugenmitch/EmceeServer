@@ -1,3 +1,8 @@
+# User Added
+# Directories
+minecraft/
+
+# GitHub Generated .gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
