@@ -23,7 +23,7 @@ signal.signal(signal.SIGTERM, terminate)
 print('PID: ', os.getpid())
 
 sc = ['java', '-Xms1G', '-Xmx2G', '-jar', 'server.jar', 'nogui']
-process = subprocess.Popen(sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd='./minecraft/')
+process = subprocess.Popen(sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd='/home/minecraft/EmceeServer/minecraft/')
 
 time.sleep(3600)  # 1 hour = 3600 seconds
 
