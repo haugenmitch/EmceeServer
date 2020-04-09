@@ -1,8 +1,9 @@
-import signal
+import configparser
 import os
 import time
-import sys
+import signal
 import subprocess
+import sys
 
 
 # Call the following to get the pid for the kill command:
@@ -10,27 +11,26 @@ import subprocess
 # kill -SIGTERM <pid>
 # kill -15 <pid>
 def terminate(signal_number, frame):
-    print('Terminating')
     if process is not None:
         process.stdin.write(b'stop\n')
-    time.sleep(5)
-    print('Done')
     sys.exit()
 
 
 signal.signal(signal.SIGTERM, terminate)
 
-print('PID: ', os.getpid())
-
-sc = ['java', '-Xms1G', '-Xmx2G', '-jar', 'server.jar', 'nogui']
-process = subprocess.Popen(sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd='/home/minecraft/EmceeServer/minecraft/')
+config = configparser.ConfigParser()
+config.read('server.ini')
+java = config['java']
+starting_memory = '-Xms' + java['starting_memory']
+max_memory = '-Xmx' + java['max_memory']
+server_dir = java['server_dir']
+sc = ['java', starting_memory, max_memory, '-jar', 'server.jar', 'nogui']
+process = subprocess.Popen(sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=server_dir)
 
 time.sleep(3600)  # 1 hour = 3600 seconds
 
 process.stdin.write(b'stop\n')
 
-print('Restarting server...')
-
-time.sleep(15)
+time.sleep(10)  # give server time to stop
 
 os.system('sudo reboot now')
