@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import datetime, date, time, timedelta
 import configparser
 import logging
 import os
-import time
 import signal
 import subprocess
 import sys
+import time as t
 import threading
 
 
@@ -27,35 +27,34 @@ class Server:
         self.sc = ['java', self.starting_memory, self.max_memory, '-jar', 'server.jar', 'nogui']
         self.process = None
         self.timer = None
-        self.terminate = False
-        self.shutdown = False
+        self.is_terminated = False
+        self.is_shutdown = False
 
     def terminate(self, signal_number, frame):
-        # self.timer.cancel()
-        # self.stop_server()
-        # sys.exit()
-
-        self.terminate = True
+        self.is_terminated = True
 
     def shutdown(self):
-        # self.stop_server()
-        # os.system('sudo reboot now')
-
-        self.shutdown = True
+        self.is_shutdown = True
 
     def stop_server(self):
         if self.process is not None:
             self.process.stdin.write('stop\n')
-            time.sleep(10)  # give server time to stop
+            t.sleep(10)  # give server time to stop
+
+    def start_timer(self):
+        reset_time = datetime.combine(date.today(), time(8, 0))
+        reset_time += timedelta(days=1)
+        total_time = reset_time - datetime.now()
+        self.timer = threading.Timer(total_time.total_seconds(), self.shutdown)
+        self.timer.start()
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         cwd=self.server_dir, text=True)
 
-        self.timer = threading.Timer(3600, self.shutdown)
-        self.timer.start()
+        self.start_timer()
 
-        while not self.terminate and not self.shutdown:
+        while not self.is_terminated and not self.is_shutdown:
             out = self.process.stdout.readlines()
             err = self.process.stderr.readlines()
             for line in out:
@@ -64,7 +63,7 @@ class Server:
                 logging.error(line.strip())
 
         self.stop_server()
-        if self.shutdown:
+        if self.is_shutdown:
             os.system('sudo reboot now')
         else:
             self.timer.cancel()
