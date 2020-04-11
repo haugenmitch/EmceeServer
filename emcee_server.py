@@ -6,31 +6,42 @@ import subprocess
 import sys
 
 
-# Call the following to get the pid for the kill command:
-# ps -ax | grep emcee_server.py
-# kill -SIGTERM <pid>
-# kill -15 <pid>
-def terminate(signal_number, frame):
-    if process is not None:
-        process.stdin.write(b'stop\n')
-    sys.exit()
+class Server:
+    def __init__(self, config):
+        signal.signal(signal.SIGTERM, self.terminate)
+
+        java = config['java']
+        self.starting_memory = '-Xms' + java['starting_memory']
+        self.max_memory = '-Xmx' + java['max_memory']
+        self.server_dir = java['server_dir']
+        self.sc = ['java', self.starting_memory, self.max_memory, '-jar', 'server.jar', 'nogui']
+        self.process = None
+
+    def terminate(self, signal_number, frame):
+        if self.process is not None:
+            self.process.stdin.write(b'stop\n')
+            time.sleep(10)  # give server time to stop
+        sys.exit()
+
+    def run(self):
+        self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                        cwd=self.server_dir)
+
+        time.sleep(3600)  # 1 hour = 3600 seconds
+
+        self.process.stdin.write(b'stop\n')
+        time.sleep(10)  # give server time to stop
+
+        os.system('sudo reboot now')
 
 
-signal.signal(signal.SIGTERM, terminate)
+def main():
+    config = configparser.ConfigParser()
+    config.read('server.ini')
 
-config = configparser.ConfigParser()
-config.read('server.ini')
-java = config['java']
-starting_memory = '-Xms' + java['starting_memory']
-max_memory = '-Xmx' + java['max_memory']
-server_dir = java['server_dir']
-sc = ['java', starting_memory, max_memory, '-jar', 'server.jar', 'nogui']
-process = subprocess.Popen(sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=server_dir)
+    server = Server(config)
+    server.run()
 
-time.sleep(3600)  # 1 hour = 3600 seconds
 
-process.stdin.write(b'stop\n')
-
-time.sleep(10)  # give server time to stop
-
-os.system('sudo reboot now')
+if __name__ == '__main__':
+    main()
