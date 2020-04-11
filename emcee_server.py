@@ -4,6 +4,7 @@ import time
 import signal
 import subprocess
 import sys
+import threading
 
 
 class Server:
@@ -16,23 +17,27 @@ class Server:
         self.server_dir = java['server_dir']
         self.sc = ['java', self.starting_memory, self.max_memory, '-jar', 'server.jar', 'nogui']
         self.process = None
+        self.timer = None
 
-    def terminate(self, signal_number, frame):
+    def stop_server(self):
         if self.process is not None:
             self.process.stdin.write(b'stop\n')
             time.sleep(10)  # give server time to stop
+
+    def terminate(self, signal_number, frame):
+        self.stop_server()
         sys.exit()
+
+    def shutdown(self):
+        self.stop_server()
+        os.system('sudo reboot now')
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         cwd=self.server_dir)
 
-        time.sleep(3600)  # 1 hour = 3600 seconds
-
-        self.process.stdin.write(b'stop\n')
-        time.sleep(10)  # give server time to stop
-
-        os.system('sudo reboot now')
+        self.timer = threading.Timer(3600, self.shutdown)
+        self.timer.start()
 
 
 def main():
