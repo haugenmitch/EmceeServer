@@ -1,12 +1,11 @@
-from datetime import datetime, date, time, timedelta
 import configparser
 import logging
 import os
 import signal
 import subprocess
 import sys
-import time as t
-import threading
+from datetime import datetime, date, time, timedelta
+from threading import Thread, Lock, Timer, Event
 
 
 class Server:
@@ -27,46 +26,91 @@ class Server:
         self.sc = ['java', self.starting_memory, self.max_memory, '-jar', 'server.jar', 'nogui']
         self.process = None
         self.timer = None
-        self.is_terminated = False
-        self.is_shutdown = False
+        self.is_shutting_down = False
+        self.server_stop_event = Event()
 
     def terminate(self, signal_number, frame):
-        self.is_terminated = True
+        self.stop_server()
 
     def shutdown(self):
-        self.is_shutdown = True
+        self.is_shutting_down = True
+        self.stop_server()
 
     def stop_server(self):
+        self.timer.cancel()
         if self.process is not None:
-            self.process.stdin.write('stop\n')
-            t.sleep(10)  # give server time to stop
+            self.send_command('stop')
+            self.server_stop_event.wait()
+        self.server_stop_event.set()  # Set the event in case the server never started
 
     def start_timer(self):
         reset_time = datetime.combine(date.today(), time(8, 0))
         reset_time += timedelta(days=1)
         total_time = reset_time - datetime.now()
-        self.timer = threading.Timer(total_time.total_seconds(), self.shutdown)
+        self.timer = Timer(total_time.total_seconds(), self.shutdown)
         self.timer.start()
+
+    def send_command(self, command):
+        command = command.strip()
+        logging.info('CMD: ' + command)
+        self.process.stdin.write(command + '\n')
+
+    def handle_stdout(self, stream):
+        while True:
+            line = stream.readline()
+            if not line:
+                break
+            line = line.strip()
+            if line:
+                logging.info(line)
+        self.server_stop_event.set()  # process will only send EOF when done executing
+
+    def handle_stderr(self, stream):
+        while True:
+            line = stream.readline()
+            if not line:
+                break
+            line = line.strip()
+            if line:
+                logging.error(line)
+        self.server_stop_event.set()  # process will only send EOF when done executing
+
+    def handle_input(self):
+        while True:
+            cmd = input('$ ')
+            self.send_command(cmd)
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                        cwd=self.server_dir, text=True)
+                                        cwd=self.server_dir, text=True, bufsize=1, universal_newlines=True)
 
         self.start_timer()
 
-        while not self.is_terminated and not self.is_shutdown:
-            out = self.process.stdout.readlines()
-            err = self.process.stderr.readlines()
-            for line in out:
-                logging.info(line.strip())
-            for line in err:
-                logging.error(line.strip())
+        # stdout
+        stdout_thread = Thread(target=self.handle_stdout, args=(self.process.stdout,))
+        stdout_thread.daemon = True
+        stdout_thread.start()
 
-        self.stop_server()
-        if self.is_shutdown:
+        # stderr
+        stderr_thread = Thread(target=self.handle_stderr, args=(self.process.stderr,))
+        stderr_thread.daemon = True
+        stderr_thread.start()
+
+        # stdin
+        stdin_thread = Thread(target=self.handle_input)
+        stdin_thread.daemon = True
+        stdin_thread.start()
+
+        self.server_stop_event.wait()
+
+        stdout_thread.join()
+        stderr_thread.join()
+        stdin_thread.join(timeout=0)
+        self.timer.cancel()
+
+        if self.is_shutting_down:
             os.system('sudo reboot now')
         else:
-            self.timer.cancel()
             sys.exit()
 
 
