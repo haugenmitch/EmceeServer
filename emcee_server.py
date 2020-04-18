@@ -10,6 +10,7 @@ from threading import Thread, Lock, Timer, Event
 
 class Server:
     def __init__(self, config):
+        self.config = config
         signal.signal(signal.SIGTERM, self.terminate)
 
         if not os.path.exists("./logs"):
@@ -19,10 +20,10 @@ class Server:
                                                                                               'message)s',
                             level=logging.INFO)
 
-        java = config['java']
-        self.starting_memory = '-Xms' + java['starting_memory']
-        self.max_memory = '-Xmx' + java['max_memory']
-        self.server_dir = java['server_dir']
+        java = self.config['Java']
+        self.starting_memory = '-Xms' + java['StartingMemory']
+        self.max_memory = '-Xmx' + java['MaxMemory']
+        self.server_dir = java['ServerDir']
         self.sc = ['java', self.starting_memory, self.max_memory, '-jar', 'server.jar', 'nogui']
         self.process = None
         self.timer = None
@@ -97,15 +98,18 @@ class Server:
         stderr_thread.start()
 
         # stdin
-        stdin_thread = Thread(target=self.handle_input)
-        stdin_thread.daemon = True
-        stdin_thread.start()
+        run_as_service = self.config.getboolean('DEFAULT', 'RunAsService')
+        if not run_as_service:
+            stdin_thread = Thread(target=self.handle_input)
+            stdin_thread.daemon = True
+            stdin_thread.start()
 
         self.server_stop_event.wait()
 
         stdout_thread.join()
         stderr_thread.join()
-        stdin_thread.join(timeout=0)
+        if not run_as_service:
+            stdin_thread.join(timeout=0)
         self.timer.cancel()
 
         if self.is_shutting_down:
