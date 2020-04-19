@@ -5,7 +5,8 @@ import signal
 import subprocess
 import sys
 from datetime import datetime, date, time, timedelta
-from threading import Thread, Lock, Timer, Event
+from threading import Thread, Timer, Event
+import re
 
 
 class Server:
@@ -64,7 +65,29 @@ class Server:
             line = line.strip()
             if line:
                 logging.info(line)
+                self.parse_line(line)
         self.server_stop_event.set()  # process will only send EOF when done executing
+
+    def parse_line(self, line):
+        line = re.sub(r'^.*?]:', '', line)
+        line = line.strip()
+        if line.startswith('*'):  # User used /me command
+            pass
+        elif line.startswith('<'):  # User entered something in chat
+            pass
+        elif line.startswith('['):  # op ran a command
+            pass
+        else:  # server info
+            self.parse_server_info(line)
+
+    def parse_server_info(self, line):
+        first_token = line.split(' ')[0]
+        if line.endswith('joined the game'):
+            pass
+        elif line.endswith('left the game'):
+            pass
+        elif line.endswith(r'has made the advancement \[.*\]$'):
+            pass
 
     def handle_stderr(self, stream):
         while True:
@@ -110,6 +133,7 @@ class Server:
         stderr_thread.join()
         if not run_as_service:
             stdin_thread.join(timeout=0)
+            print()  # Last command entry never got filled
         self.timer.cancel()
 
         if self.is_shutting_down:
