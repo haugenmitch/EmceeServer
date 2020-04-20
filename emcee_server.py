@@ -7,6 +7,7 @@ import sys
 from datetime import datetime, date, time, timedelta
 from threading import Thread, Timer, Event
 import re
+import json
 
 
 class Server:
@@ -20,6 +21,13 @@ class Server:
                                                                                               'levelname)s:%('
                                                                                               'message)s',
                             level=logging.INFO)
+
+        try:
+            self.json_file = open('player_data.json', 'r+')
+        except OSError:
+            self.json_file = open('player_data.json', 'w+')
+        file_text = self.json_file.read()
+        self.player_data = {} if not file_text else json.loads(file_text)
 
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
@@ -81,13 +89,26 @@ class Server:
             self.parse_server_info(line)
 
     def parse_server_info(self, line):
-        first_token = line.split(' ')[0]
+        username = line.split(' ', 1)[0]
         if line.endswith('joined the game'):
-            pass
+            if username not in self.player_data:
+                self.create_new_player(username)
+                self.send_command('/tell ' + username + ' Welcome to the server, ' + username + '!')
+            self.player_data[username]['log_ons'].append(datetime.now())
+            self.update_player_data_record()
         elif line.endswith('left the game'):
-            pass
-        elif line.endswith(r'has made the advancement \[.*\]$'):
-            pass
+            self.player_data[username]['log_offs'].append(datetime.now())
+            self.update_player_data_record()
+        elif re.search(r'has made the advancement \[.*\]$', line):
+            self.send_command('/tell ' + username + ' Congrats, ' + username + '!')
+            self.send_command('/give ' + username + ' minecraft:emerald')
+
+    def create_new_player(self, username):
+        self.player_data[username] = {}
+        new_player = self.player_data[username]
+        new_player['log_ons'] = []
+        new_player['log_offs'] = []
+        self.update_player_data_record()
 
     def handle_stderr(self, stream):
         while True:
@@ -98,6 +119,11 @@ class Server:
             if line:
                 logging.error(line)
         self.server_stop_event.set()  # process will only send EOF when done executing
+
+    def update_player_data_record(self):
+        self.json_file.seek(0)
+        self.json_file.write(json.dumps(self.player_data, indent=4, sort_keys=True, default=str))
+        self.json_file.truncate()
 
     def handle_input(self):
         while True:
@@ -135,6 +161,7 @@ class Server:
             stdin_thread.join(timeout=0)
             print()  # Last command entry never got filled
         self.timer.cancel()
+        self.json_file.close()
 
         if self.is_shutting_down:
             os.system('sudo reboot now')
