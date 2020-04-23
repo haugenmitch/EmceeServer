@@ -107,7 +107,8 @@ class Server:
         elif line.endswith('left the game'):
             self.player_data[username]['log_offs'].append(datetime.now())
             self.update_player_data_record()
-        elif re.search(r'has made the advancement \[.*\]$', line):
+        elif re.search(r'has made the advancement \[.*\]$', line) or re.search(r'has reached the goal \[.*\]$', line) \
+                or re.search(r'has completed the challenge \[.*\]$', line):
             self.send_command('/tell ' + username + ' Congrats, ' + username + '!')
             self.send_command('/give ' + username + ' minecraft:emerald')
 
