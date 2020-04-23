@@ -29,6 +29,13 @@ class Server:
         file_text = self.json_file.read()
         self.player_data = {} if not file_text else json.loads(file_text)
 
+        try:
+            starter_kit_file = open('starter_kit.json', 'r')
+            starter_kit_file_text = starter_kit_file.read()
+            self.starter_kit = [] if not starter_kit_file_text else json.loads(starter_kit_file_text)
+        except OSError:
+            self.starter_kit = []
+
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
         self.max_memory = '-Xmx' + java['MaxMemory']
@@ -94,6 +101,7 @@ class Server:
             if username not in self.player_data:
                 self.create_new_player(username)
                 self.send_command('/tell ' + username + ' Welcome to the server, ' + username + '!')
+                self.give_starter_kit(username)
             self.player_data[username]['log_ons'].append(datetime.now())
             self.update_player_data_record()
         elif line.endswith('left the game'):
@@ -109,6 +117,16 @@ class Server:
         new_player['log_ons'] = []
         new_player['log_offs'] = []
         self.update_player_data_record()
+
+    def give_starter_kit(self, username):
+        for item in self.starter_kit:
+            item_name = item[0]
+            quantity = 1 if len(item) < 2 else item [1]
+            slot = None if len(item) < 3 else item[2]
+            if slot is None:
+                self.send_command(f'give {username} {item_name} {quantity}')
+            else:
+                self.send_command(f'replaceitem entity {username} {slot} {item_name} {quantity}')
 
     def handle_stderr(self, stream):
         while True:

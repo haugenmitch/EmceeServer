@@ -1,0 +1,46 @@
+[
+    [
+        "minecraft:leather_helmet{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Helmet\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"I love helmets. I LOVE\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\",\"[{\\\"text\\\":\\\"HELMETS!\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"],\"color\":4214688},\"Enchantments\":[{\"id\":\"protection\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":2}]}",
+        1,
+        "armor.head"
+    ],
+    [
+        "minecraft:leather_chestplate{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Chestplate\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"Damn! I look good in\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\",\"[{\\\"text\\\":\\\"leather.\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"],\"color\":4214688},\"Enchantments\":[{\"id\":\"protection\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":2}]}",
+        1,
+        "armor.chest"
+    ],
+    [
+        "minecraft:leather_leggings{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Leggings\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"Hot pants!\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"],\"color\":4214688},\"Enchantments\":[{\"id\":\"protection\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":2}]}",
+        1,
+        "armor.legs"
+    ],
+    [
+        "minecraft:leather_boots{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Boots\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"Eh, I prefer crocs...\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"],\"color\":4214688},\"Enchantments\":[{\"id\":\"protection\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":2}]}",
+        1,
+        "armor.feet"
+    ],
+    [
+        "minecraft:written_book{pages:[\\'[\"\",{\"text\":\"Hello, and welcome to the server!\\\\n\\\\n\"},{\"text\":\"[Test]\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/tell @s This is a test\"},\"hoverEvent\":{\"action\":\"show_text\",\"value\":\"This is a tooltip\"}}]\\'],title:Book,author:\"haugenmitch\",generation:3}"
+    ],
+    [
+        "minecraft:wooden_sword{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Sword\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"It's dangerous to go\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\",\"[{\\\"text\\\":\\\"alone...\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"]},\"Enchantments\":[{\"id\":\"sharpness\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":3}]}"
+    ],
+    [
+        "minecraft:wooden_pickaxe{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Pickaxe\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"Back to the mines!\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"]},\"Enchantments\":[{\"id\":\"efficiency\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":3}]}"
+    ],
+    [
+        "minecraft:wooden_axe{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Axe\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"An axe made of wood? Huh.\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"]},\"Enchantments\":[{\"id\":\"efficiency\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":3}]}"
+    ],
+    [
+        "minecraft:torch",
+        20
+    ],
+    [
+        "minecraft:bread",
+        5
+    ],
+    [
+        "minecraft:emerald",
+        10
+    ]
+]
