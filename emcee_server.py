@@ -100,17 +100,17 @@ class Server:
         if line.endswith('joined the game'):
             if username not in self.player_data:
                 self.create_new_player(username)
-                self.send_command('/tell ' + username + ' Welcome to the server, ' + username + '!')
+                self.send_command(f'tell {username} Welcome to the server, {username}!')
                 self.give_starter_kit(username)
             self.player_data[username]['log_ons'].append(datetime.now())
             self.update_player_data_record()
         elif line.endswith('left the game'):
             self.player_data[username]['log_offs'].append(datetime.now())
             self.update_player_data_record()
-        elif re.search(r'has made the advancement \[.*\]$', line) or re.search(r'has reached the goal \[.*\]$', line) \
-                or re.search(r'has completed the challenge \[.*\]$', line):
-            self.send_command('/tell ' + username + ' Congrats, ' + username + '!')
-            self.send_command('/give ' + username + ' minecraft:emerald')
+        elif re.search(fr'^{username} has (made the advancement|reached the goal|completed the challenge) \[.*\]$',
+                       line):
+            self.send_command(f'tell {username} Congrats, {username}!')
+            self.send_command(f'give {username} minecraft:emerald')
 
     def create_new_player(self, username):
         self.player_data[username] = {}
