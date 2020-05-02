@@ -9,6 +9,7 @@ from threading import Thread, Timer, Event, RLock, Condition
 import threading
 import re
 import json
+from zipfile import ZipFile
 
 
 class Server:
@@ -99,8 +100,16 @@ class Server:
                 line_count += 1
         self.server_stop_event.set()  # process will only send EOF when done executing
 
-    def create_debug_report(self, username):
+    def create_debug_report(self):
         output = self.get_output('debug report', r'^.*?]: Created debug report in debug-report-.*$', True, 3.0)
+        if output is None:
+            return None
+        report_name = output[output.index('debug-report-'):]
+        report_dir = f"{self.config['Java']['ServerDir']}debug/{report_name}"
+        report_path = report_dir + '.zip'
+        with ZipFile(report_path, 'r') as zip_file:
+            zip_file.extractall(report_dir)
+            return report_dir
 
     def get_output(self, command, output_form, capture_output=True, timeout=None):
         name = threading.current_thread().name
