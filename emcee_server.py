@@ -5,7 +5,8 @@ import signal
 import subprocess
 import sys
 from datetime import datetime, date, time, timedelta
-from threading import Thread, Timer, Event
+from threading import Thread, Timer, Event, RLock, Condition
+import threading
 import re
 import json
 
@@ -45,6 +46,8 @@ class Server:
         self.timer = None
         self.is_shutting_down = False
         self.server_stop_event = Event()
+        self.expected_outputs = {}
+        self.lock = Condition(lock=RLock())
 
     def terminate(self, signal_number, frame):
         self.stop_server()
@@ -73,30 +76,56 @@ class Server:
         self.process.stdin.write(command + '\n')
 
     def handle_stdout(self, stream):
+        line_count = 0
         while True:
             line = stream.readline()
-            if not line:
+            if not line:  # EOF
                 break
             line = line.strip()
             if line:
                 logging.info(line)
-                self.parse_line(line)
+
+                output_captured = False
+                with self.lock:
+                    for name in self.expected_outputs:
+                        if re.search(self.expected_outputs[name]['output_form'], line):
+                            self.expected_outputs[name]['output'] = line
+                            output_captured |= self.expected_outputs[name]['capture_output']
+                            self.lock.notify_all()
+
+                if not output_captured:
+                    t = Thread(name=str(line_count), target=self.parse_line, args=(line,))
+                    t.start()
+                line_count += 1
         self.server_stop_event.set()  # process will only send EOF when done executing
 
+    def create_debug_report(self, username):
+        output = self.get_output('debug report', r'^.*?]: Created debug report in debug-report-.*$', True, 3.0)
+
+    def get_output(self, command, output_form, capture_output=True, timeout=None):
+        name = threading.current_thread().name
+        with self.lock:
+            self.expected_outputs[name] = {'output_form': output_form, 'capture_output': capture_output, 'output': None}
+            self.send_command(command)
+            self.lock.wait_for(lambda: self.expected_outputs[name]['output'] is not None, timeout)
+            return self.expected_outputs[name]['output']
+
     def parse_line(self, line):
-        line = re.sub(r'^.*?]:', '', line)
-        line = line.strip()
-        if line.startswith('*'):  # User used /me command
-            pass
-        elif line.startswith('<'):  # User entered something in chat
-            pass
-        elif line.startswith('['):  # op ran a command
-            pass
-        else:  # server info
-            self.parse_server_info(line)
+        with self.lock:
+            line = re.sub(r'^.*?]:', '', line)
+            line = line.strip()
+            if line.startswith('*'):  # User used /me command
+                pass
+            elif line.startswith('<'):  # User entered something in chat
+                pass
+            elif line.startswith('['):  # op ran a command
+                pass
+            else:  # server info
+                self.parse_server_info(line)
 
     def parse_server_info(self, line):
         username = line.split(' ', 1)[0]
+
         if line.endswith('joined the game'):
             if username not in self.player_data:
                 self.create_new_player(username)
@@ -122,7 +151,7 @@ class Server:
     def give_starter_kit(self, username):
         for item in self.starter_kit:
             item_name = item[0]
-            quantity = 1 if len(item) < 2 else item [1]
+            quantity = 1 if len(item) < 2 else item[1]
             slot = None if len(item) < 3 else item[2]
             if slot is None:
                 self.send_command(f'give {username} {item_name} {quantity}')
@@ -156,20 +185,20 @@ class Server:
         self.start_timer()
 
         # stdout
-        stdout_thread = Thread(target=self.handle_stdout, args=(self.process.stdout,))
+        stdout_thread = Thread(name='stdout', target=self.handle_stdout, args=(self.process.stdout,))
         stdout_thread.daemon = True
         stdout_thread.start()
 
         # stderr
-        stderr_thread = Thread(target=self.handle_stderr, args=(self.process.stderr,))
+        stderr_thread = Thread(name='stderr', target=self.handle_stderr, args=(self.process.stderr,))
         stderr_thread.daemon = True
         stderr_thread.start()
 
         # stdin
+        stdin_thread = Thread(name='stdin', target=self.handle_input)
+        stdin_thread.daemon = True
         run_as_service = self.config.getboolean('DEFAULT', 'RunAsService')
         if not run_as_service:
-            stdin_thread = Thread(target=self.handle_input)
-            stdin_thread.daemon = True
             stdin_thread.start()
 
         self.server_stop_event.wait()
