@@ -27,11 +27,14 @@ class Server:
                             level=logging.INFO)
 
         try:
-            self.json_file = open('player_data.json', 'r+')
+            self.server_data_file = open('server_data.json', 'r+')
         except OSError:
-            self.json_file = open('player_data.json', 'w+')
-        file_text = self.json_file.read()
-        self.player_data = {} if not file_text else json.loads(file_text)
+            self.server_data_file = open('server_data.json', 'w+')
+        file_text = self.server_data_file.read()
+        self.server_data = {} if not file_text else json.loads(file_text)
+        if self.server_data == {}:
+            self.init_server_data()
+        self.player_data = self.server_data['player_data']
 
         try:
             starter_kit_file = open('starter_kit.json', 'r')
@@ -51,6 +54,9 @@ class Server:
         self.server_stop_event = Event()
         self.expected_outputs = {}
         self.lock = Condition(lock=RLock())
+
+    def init_server_data(self):
+        self.server_data = {'player_data': {}}
 
     def terminate(self, signal_number, frame):
         self.stop_server()
@@ -199,9 +205,9 @@ class Server:
         self.server_stop_event.set()  # process will only send EOF when done executing
 
     def update_player_data_record(self):
-        self.json_file.seek(0)
-        self.json_file.write(json.dumps(self.player_data, indent=4, sort_keys=True, default=str))
-        self.json_file.truncate()
+        self.server_data_file.seek(0)
+        self.server_data_file.write(json.dumps(self.server_data, indent=4, sort_keys=True, default=str))
+        self.server_data_file.truncate()
 
     def handle_input(self):
         while True:
@@ -239,7 +245,7 @@ class Server:
             stdin_thread.join(timeout=0)
             print()  # Last command entry never got filled
         self.timer.cancel()
-        self.json_file.close()
+        self.server_data_file.close()
 
         if self.is_shutting_down:
             os.system('sudo reboot now')

@@ -4,5 +4,5 @@ minecraft/
 
 # Files
 *.log
-player_data.json
+server_data.json
 
