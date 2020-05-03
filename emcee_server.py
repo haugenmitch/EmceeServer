@@ -1,14 +1,16 @@
 import configparser
+import csv
+import json
 import logging
 import os
+import re
 import signal
 import subprocess
 import sys
+import threading
+
 from datetime import datetime, date, time, timedelta
 from threading import Thread, Timer, Event, RLock, Condition
-import threading
-import re
-import json
 from zipfile import ZipFile
 
 
@@ -103,6 +105,7 @@ class Server:
     def create_debug_report(self):
         output = self.get_output('debug report', r'^.*?]: Created debug report in debug-report-.*$', True, 3.0)
         if output is None:
+            logging.error('Could not generate debug report')
             return None
         report_name = output[output.index('debug-report-'):]
         report_dir = f"{self.config['Java']['ServerDir']}debug/{report_name}"
@@ -110,6 +113,24 @@ class Server:
         with ZipFile(report_path, 'r') as zip_file:
             zip_file.extractall(report_dir)
             return report_dir
+
+    def get_player_locations(self):
+        debug_dir = self.create_debug_report()
+        if debug_dir is None:
+            logging.error('Could not get player locations')
+            return None
+        locations = {}
+        for entry in os.walk(debug_dir + '/levels'):
+            if 'entities.csv' not in entry[2]:
+                continue
+            realm = ':'.join(entry[0].split('/')[-2:])
+            with open(entry[0]+'/entities.csv', newline='') as csv_file:
+                csv_data = csv.reader(csv_file, delimiter=',')
+                next(csv_data)  # bypass column name line
+                for row in csv_data:
+                    if row[4] == 'minecraft:player':
+                        locations[row[6]] = {'x': row[0], 'y': row[1], 'z': row[2], 'realm': realm}
+        return locations
 
     def get_output(self, command, output_form, capture_output=True, timeout=None):
         name = threading.current_thread().name
