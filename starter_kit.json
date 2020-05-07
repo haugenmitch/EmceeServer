@@ -20,7 +20,7 @@
         "armor.feet"
     ],
     [
-        "minecraft:written_book{pages:[\\'[\"\",{\"text\":\"Hello, and welcome to the server!\\\\n\\\\n\"},{\"text\":\"[Test]\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/tell @s This is a test\"},\"hoverEvent\":{\"action\":\"show_text\",\"value\":\"This is a tooltip\"}}]\\'],title:Book,author:\"haugenmitch\",generation:3}"
+        "minecraft:written_book{pages:['[\"\",{\"text\":\"Hello, and welcome to the server!\\\\n\\\\n\"},{\"text\":\"[Test]\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"say \\\\\"Hi, friend\\\\\"\"},\"hoverEvent\":{\"action\":\"show_text\",\"value\":\"This is a tooltip\"}}]','{\"text\":\"This is another page.\"}'],title:\"Starter's Guide\",author:haugenmitch,generation:3,display:{Lore:[\"here's a description\"]}}"
     ],
     [
         "minecraft:wooden_sword{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Sword\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"It's dangerous to go\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\",\"[{\\\"text\\\":\\\"alone...\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"]},\"Enchantments\":[{\"id\":\"sharpness\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":3}]}"
