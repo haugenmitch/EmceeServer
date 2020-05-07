@@ -54,6 +54,7 @@ class Server:
         self.server_stop_event = Event()
         self.expected_outputs = {}
         self.lock = Condition(lock=RLock())
+        self.online_players = []
 
     def init_server_data(self):
         self.server_data = {'player_data': {}}
@@ -160,18 +161,23 @@ class Server:
                 self.parse_server_info(line)
 
     def parse_server_info(self, line):
-        username = line.split(' ', 1)[0]
+        first_token = line.split(' ', 1)[0]
+        username = first_token if first_token in self.online_players or line.endswith('joined the game') else None
 
-        if line.endswith('joined the game'):
+        if username is None:
+            return
+        elif line.endswith('joined the game'):
             if username not in self.player_data:
                 self.create_new_player(username)
                 self.send_command(f'tell {username} Welcome to the server, {username}!')
                 self.give_starter_kit(username)
             self.player_data[username]['log_ons'].append(datetime.now())
             self.update_player_data_record()
+            self.online_players.append(username)
         elif line.endswith('left the game'):
             self.player_data[username]['log_offs'].append(datetime.now())
             self.update_player_data_record()
+            self.online_players.remove(username)
         elif re.search(fr'^{username} has (made the advancement|reached the goal|completed the challenge) \[.*\]$',
                        line):
             self.send_command(f'tell {username} Congrats, {username}!')
