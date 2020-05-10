@@ -82,8 +82,9 @@ class Server:
 
     def send_command(self, command):
         command = command.strip()
-        logging.info('CMD: ' + command)
-        self.process.stdin.write(command + '\n')
+        if command:
+            logging.info('CMD: ' + command)
+            self.process.stdin.write(command + '\n')
 
     def handle_stdout(self, stream):
         line_count = 0
@@ -220,6 +221,9 @@ class Server:
             cmd = input('$ ')
             self.send_command(cmd)
 
+    def server_start(self):
+        self.get_output('', r'^.*]: Done \(\d+.\d+s\)! For help, type "help"$')
+
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         cwd=self.server_dir, text=True, bufsize=1, universal_newlines=True)
@@ -243,6 +247,11 @@ class Server:
         if not run_as_service:
             stdin_thread.start()
 
+        # server start
+        server_start = Thread(name='server_start', target=self.server_start)
+        server_start.daemon = True
+        server_start.start()
+
         self.server_stop_event.wait()
 
         stdout_thread.join()
@@ -250,6 +259,7 @@ class Server:
         if not run_as_service:
             stdin_thread.join(timeout=0)
             print()  # Last command entry never got filled
+        server_start.join(timeout=0)
         self.timer.cancel()
         self.server_data_file.close()
 
