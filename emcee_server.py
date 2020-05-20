@@ -43,6 +43,9 @@ class Server:
         except OSError:
             self.starter_kit = []
 
+        with open('objectives.json') as objectives_file:
+            self.objectives = json.loads(objectives_file.read())
+
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
         self.max_memory = '-Xmx' + java['MaxMemory']
@@ -161,6 +164,29 @@ class Server:
             else:  # server info
                 self.parse_server_info(line)
 
+    def process_player_logon(self, username):
+        if username not in self.player_data:
+            self.create_new_player(username)
+            self.send_command(f'tell {username} Welcome to the server, {username}!')
+            self.give_starter_kit(username)
+
+        for objective in self.objectives:
+            self.send_command(f'scoreboard players set {username} {objective} 0')
+            if 'type' in self.objectives[objective] and self.objectives[objective][type] == 'trigger':
+                self.send_command(f'scoreboard players enable {username} {objective}')
+
+        # setup death count for player
+        self.send_command(f'scoreboard players set {username} deaths {self.player_data[username]["death_count"]}')
+
+        self.player_data[username]['log_ons'].append(datetime.now())
+        self.update_player_data_record()
+        self.online_players.append(username)
+
+    def process_player_death(self, username, death_count):
+        self.player_data[username]['death_count'] = death_count
+        self.update_player_data_record()
+        self.send_command(f'tell {username} You have died {death_count} times')
+
     def parse_server_info(self, line):
         first_token = line.split(' ', 1)[0]
         username = first_token if first_token in self.online_players or line.endswith('joined the game') else None
@@ -168,13 +194,7 @@ class Server:
         if username is None:
             return
         elif line.endswith('joined the game'):
-            if username not in self.player_data:
-                self.create_new_player(username)
-                self.send_command(f'tell {username} Welcome to the server, {username}!')
-                self.give_starter_kit(username)
-            self.player_data[username]['log_ons'].append(datetime.now())
-            self.update_player_data_record()
-            self.online_players.append(username)
+            self.process_player_logon(username)
         elif line.endswith('left the game'):
             self.player_data[username]['log_offs'].append(datetime.now())
             self.update_player_data_record()
@@ -183,12 +203,19 @@ class Server:
                        line):
             self.send_command(f'tell {username} Congrats, {username}!')
             self.send_command(f'give {username} minecraft:emerald')
+        else:  # could be a death message
+            death_count_string = self.get_output(f'scoreboard players get {username} deaths',
+                                                 rf'{username} has \d+ \[deaths]', True, 1.0)
+            death_count = int(re.search(rf'{username} has (\d+) \[deaths]', death_count_string).group(1))
+            if death_count > self.player_data[username]['death_count']:
+                self.process_player_death(username, death_count)
 
     def create_new_player(self, username):
         self.player_data[username] = {}
         new_player = self.player_data[username]
         new_player['log_ons'] = []
         new_player['log_offs'] = []
+        new_player['death_count'] = 0
         self.update_player_data_record()
 
     def give_starter_kit(self, username):
@@ -223,6 +250,12 @@ class Server:
 
     def server_start(self):
         self.get_output('', r'^.*]: Done \(\d+.\d+s\)! For help, type "help"$')
+
+        # setup objectives (do every server start cause why not?)
+        for objective in self.objectives:
+            self.send_command(f'scoreboard objectives add {objective} {self.objectives[objective]["type"]}')
+
+        self.send_command(f'scoreboard objectives add deaths deathCount')
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
