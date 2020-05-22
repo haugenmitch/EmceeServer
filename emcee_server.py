@@ -8,6 +8,7 @@ import signal
 import subprocess
 import sys
 import threading
+import time as t
 
 from datetime import datetime, date, time, timedelta
 from threading import Thread, Timer, Event, RLock, Condition
@@ -187,6 +188,18 @@ class Server:
         self.update_player_data_record()
         self.send_command(f'tell {username} You have died {death_count} times')
 
+        self.imprison_player(username, death_count)
+
+    def imprison_player(self, username, death_count):
+        location = self.get_player_locations()[username]
+        self.send_command(f'gamemode adventure {username}')
+        # -51.5 64 6.5
+        self.send_command(f'execute in minecraft:overworld run tp {username} -51.5 64 6.5')
+        t.sleep(death_count * 60)
+        self.send_command(f'execute in {location["realm"]} run tp {username} {location["x"]} {location["y"]} '
+                          f'{location["z"]}')
+        self.send_command(f'gamemode survival {username}')
+
     def parse_server_info(self, line):
         first_token = line.split(' ', 1)[0]
         username = first_token if first_token in self.online_players or line.endswith('joined the game') else None
@@ -207,7 +220,7 @@ class Server:
             death_count_string = self.get_output(f'scoreboard players get {username} deaths',
                                                  rf'{username} has \d+ \[deaths]', True, 1.0)
             death_count = int(re.search(rf'{username} has (\d+) \[deaths]', death_count_string).group(1))
-            if death_count > self.player_data[username]['death_count']:
+            if death_count != self.player_data[username]['death_count']:
                 self.process_player_death(username, death_count)
 
     def create_new_player(self, username):
