@@ -28,6 +28,13 @@ class Server:
                             level=logging.INFO)
 
         try:
+            with open('server_properties.json', 'r') as spf:
+                properties = json.loads(spf.read())
+                self.mediumcore = properties['mediumcore']
+        except OSError:
+            print('Could not find or open server_properties.json')
+
+        try:
             self.server_data_file = open('server_data.json', 'r+')
         except OSError:
             self.server_data_file = open('server_data.json', 'w+')
@@ -192,12 +199,21 @@ class Server:
 
     def imprison_player(self, username, death_count):
         location = self.get_player_locations()[username]
+
         self.send_command(f'gamemode adventure {username}')
-        # -51.5 64 6.5
-        self.send_command(f'execute in minecraft:overworld run tp {username} -51.5 64 6.5')
-        t.sleep(death_count * 60)
-        self.send_command(f'execute in {location["realm"]} run tp {username} {location["x"]} {location["y"]} '
-                          f'{location["z"]}')
+        to_realm = self.mediumcore['coordinates']['realm']
+        to_x = self.mediumcore['coordinates']['x']
+        to_y = self.mediumcore['coordinates']['y']
+        to_z = self.mediumcore['coordinates']['z']
+        self.send_command(f'execute in {to_realm} run tp {username} {to_x} {to_y} {to_z}')
+
+        t.sleep(death_count * self.mediumcore['length'])
+
+        from_realm = location['realm']
+        from_x = location['x']
+        from_y = location['y']
+        from_z = location['z']
+        self.send_command(f'execute in {from_realm} run tp {username} {from_x} {from_y} {from_z}')
         self.send_command(f'gamemode survival {username}')
 
     def parse_server_info(self, line):
