@@ -203,6 +203,10 @@ class Server:
                        line):
             self.send_command(f'tell {username} Congrats, {username}!')
             self.send_command(f'give {username} minecraft:emerald')
+        elif line.startswith(f'{username} moved too quickly'):
+            pass  # capture line but do nothing with it for right now
+        elif line.startswith(f'{username} lost connection'):
+            pass  # capture line but do nothing with it for right now
         else:  # could be a death message
             death_count_string = self.get_output(f'scoreboard players get {username} deaths',
                                                  rf'{username} has \d+ \[deaths]', True, 1.0)
