@@ -234,7 +234,9 @@ class Server:
             self.send_command(f'give {username} minecraft:emerald')
         else:  # could be a death message
             death_count_string = self.get_output(f'scoreboard players get {username} deaths',
-                                                 rf'{username} has \d+ \[deaths]', True, 1.0)
+                                                 rf'{username} has \d+ \[deaths]', True, 3.0)
+            if death_count_string is None:
+                return
             death_count = int(re.search(rf'{username} has (\d+) \[deaths]', death_count_string).group(1))
             if death_count != self.player_data[username]['death_count']:
                 self.process_player_death(username, death_count)
