@@ -65,7 +65,7 @@ class Server:
         self.server_stop_event = Event()
         self.expected_outputs = {}
         self.lock = Condition(lock=RLock())
-        self.online_players = []
+        self.online_players = {}
 
     def init_server_data(self):
         self.server_data = {'player_data': {}}
@@ -188,7 +188,15 @@ class Server:
 
         self.player_data[username]['log_ons'].append(datetime.now())
         self.update_player_data_record()
-        self.online_players.append(username)
+        self.online_players[username] = {}
+
+    def process_player_logoff(self, username):
+        with self.lock:
+            self.player_data[username]['log_offs'].append(datetime.now())
+            self.update_player_data_record()
+            if 'death_punishment' in self.online_players[username]:
+                self.online_players[username]['death_punishment'][0].cancel()
+            del self.online_players[username]
 
     def process_player_death(self, username, death_count):
         self.player_data[username]['death_count'] = death_count
@@ -197,10 +205,17 @@ class Server:
         self.punish_player_death(username, death_count)
 
     def punish_player_death(self, username, death_count):
-        location = self.get_player_locations()[username]
+        try:
+            location = self.get_player_locations()[username]
+        except KeyError:
+            return  # Player logged off to avoid punishment
         self.imprison_player(username, death_count)
-        timer = Timer(death_count * self.mediumcore['length'], self.release_player, (username, location))
+        punishment_length = death_count * self.mediumcore['length']
+        release_time = datetime.now() + timedelta(seconds=punishment_length)
+        timer = Timer(punishment_length, self.release_player, (username, location))
         timer.start()
+        with self.lock:
+            self.online_players[username]['death_punishment'] = (timer, location, release_time)
 
     def imprison_player(self, username, death_count):
         self.send_command(f'gamemode adventure {username}')
@@ -217,6 +232,8 @@ class Server:
         z = location['z']
         self.send_command(f'execute in {realm} run tp {username} {x} {y} {z}')
         self.send_command(f'gamemode survival {username}')
+        with self.lock:
+            del self.online_players[username]['death_punishment']
 
     def parse_server_info(self, line):
         first_token = line.split(' ', 1)[0]
@@ -227,9 +244,7 @@ class Server:
         elif line.endswith('joined the game'):
             self.process_player_logon(username)
         elif line.endswith('left the game'):
-            self.player_data[username]['log_offs'].append(datetime.now())
-            self.update_player_data_record()
-            self.online_players.remove(username)
+            self.process_player_logoff(username)
         elif re.search(fr'^{username} has (made the advancement|reached the goal|completed the challenge) \[.*\]$',
                        line):
             self.send_command(f'tell {username} Congrats, {username}!')
