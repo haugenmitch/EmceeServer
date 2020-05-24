@@ -194,26 +194,28 @@ class Server:
         self.player_data[username]['death_count'] = death_count
         self.update_player_data_record()
         self.send_command(f'tell {username} You have died {death_count} times')
+        self.punish_player_death(username, death_count)
 
+    def punish_player_death(self, username, death_count):
+        location = self.get_player_locations()[username]
         self.imprison_player(username, death_count)
+        timer = Timer(death_count * self.mediumcore['length'], self.release_player, (username, location))
+        timer.start()
 
     def imprison_player(self, username, death_count):
-        location = self.get_player_locations()[username]
-
         self.send_command(f'gamemode adventure {username}')
-        to_realm = self.mediumcore['coordinates']['realm']
-        to_x = self.mediumcore['coordinates']['x']
-        to_y = self.mediumcore['coordinates']['y']
-        to_z = self.mediumcore['coordinates']['z']
-        self.send_command(f'execute in {to_realm} run tp {username} {to_x} {to_y} {to_z}')
+        realm = self.mediumcore['coordinates']['realm']
+        x = self.mediumcore['coordinates']['x']
+        y = self.mediumcore['coordinates']['y']
+        z = self.mediumcore['coordinates']['z']
+        self.send_command(f'execute in {realm} run tp {username} {x} {y} {z}')
 
-        t.sleep(death_count * self.mediumcore['length'])
-
-        from_realm = location['realm']
-        from_x = location['x']
-        from_y = location['y']
-        from_z = location['z']
-        self.send_command(f'execute in {from_realm} run tp {username} {from_x} {from_y} {from_z}')
+    def release_player(self, username, location):
+        realm = location['realm']
+        x = location['x']
+        y = location['y']
+        z = location['z']
+        self.send_command(f'execute in {realm} run tp {username} {x} {y} {z}')
         self.send_command(f'gamemode survival {username}')
 
     def parse_server_info(self, line):
