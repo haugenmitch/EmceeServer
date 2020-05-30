@@ -65,7 +65,7 @@ class Server:
         self.server_stop_event = Event()
         self.expected_outputs = {}
         self.lock = Condition(lock=RLock())
-        self.online_players = {}
+        self.online_players = []
 
     def init_server_data(self):
         self.server_data = {'player_data': {}}
@@ -79,6 +79,8 @@ class Server:
 
     def stop_server(self):
         self.timer.cancel()
+        # TODO kick off all players still on the server
+        # TODO save off server data
         if self.process is not None:
             self.send_command('stop')
             self.server_stop_event.wait()
@@ -188,15 +190,27 @@ class Server:
 
         self.player_data[username]['log_ons'].append(datetime.now())
         self.update_player_data_record()
-        self.online_players[username] = {}
+        self.online_players.append(username)
+        if 'death_punishment' in self.player_data[username]:
+            now = datetime.now()
+            end_time = self.player_data[username]['death_punishment']['end_time']
+            if type(end_time) is str:
+                end_time = datetime.fromisoformat(end_time)
+                self.player_data[username]['death_punishment']['end_time'] = end_time
+            if end_time <= now:
+                self.end_punishment(username)
+            else:
+                timer = Timer((end_time - now).total_seconds(), self.end_punishment, (username, ))
+                timer.start()
+                self.player_data[username]['death_punishment']['timer'] = timer
 
     def process_player_logoff(self, username):
         with self.lock:
             self.player_data[username]['log_offs'].append(datetime.now())
             self.update_player_data_record()
-            if 'death_punishment' in self.online_players[username]:
-                self.online_players[username]['death_punishment'][0].cancel()
-            del self.online_players[username]
+            if 'death_punishment' in self.player_data[username]:
+                self.player_data[username]['death_punishment']['timer'].cancel()
+            self.online_players.remove(username)
 
     def process_player_death(self, username, death_count):
         self.player_data[username]['death_count'] = death_count
@@ -205,35 +219,62 @@ class Server:
         self.punish_player_death(username, death_count)
 
     def punish_player_death(self, username, death_count):
-        try:
-            location = self.get_player_locations()[username]
-        except KeyError:
-            return  # Player logged off to avoid punishment
-        self.imprison_player(username, death_count)
-        punishment_length = death_count * self.mediumcore['length']
-        release_time = datetime.now() + timedelta(seconds=punishment_length)
-        timer = Timer(punishment_length, self.release_player, (username, location))
-        timer.start()
         with self.lock:
-            self.online_players[username]['death_punishment'] = (timer, location, release_time)
+            self.player_data[username]['death_punishment'] = {'location': None, 'end_time': None, 'timer': None,
+                                                              'imprisoned': False}
 
-    def imprison_player(self, username, death_count):
         self.send_command(f'gamemode adventure {username}')
+
+        player_locations = self.get_player_locations()
+        if player_locations is None:
+            # couldn't get locations
+            # TODO if still in punishment at next player mention (?) get their location and teleport them
+            player_locations = {}
+
+        location = player_locations[username] if username in player_locations else None
+        if location is None:
+            # player isn't online
+            pass
+        else:
+            with self.lock:
+                self.player_data[username]['death_punishment']['location'] = location
+            self.imprison_player(username)
+
+        punishment_length = death_count * self.mediumcore['length']
+        end_time = datetime.now() + timedelta(seconds=punishment_length)
+        timer = Timer(punishment_length, self.end_punishment, (username, ))
+        with self.lock:
+            timer.start()
+            self.player_data[username]['death_punishment']['timer'] = timer
+            self.player_data[username]['death_punishment']['end_time'] = end_time
+
+    def imprison_player(self, username):
         realm = self.mediumcore['coordinates']['realm']
         x = self.mediumcore['coordinates']['x']
         y = self.mediumcore['coordinates']['y']
         z = self.mediumcore['coordinates']['z']
         self.send_command(f'execute in {realm} run tp {username} {x} {y} {z}')
+        with self.lock:
+            self.player_data[username]['death_punishment']['imprisoned'] = True
+            # TODO previous line assumes player stayed online to get TPed to prison, could also check TP message after
+            # No entity was found
+            # There are 2 of a max 64 players online: haugenmitch, haugenmatt
 
-    def release_player(self, username, location):
+    def end_punishment(self, username):
+        with self.lock:
+            if self.player_data[username]['death_punishment']['imprisoned']:
+                self.release_player(username)
+            self.send_command(f'gamemode survival {username}')
+            del self.player_data[username]['death_punishment']
+
+    def release_player(self, username):
+        with self.lock:
+            location = self.player_data[username]['death_punishment']['location']
         realm = location['realm']
         x = location['x']
         y = location['y']
         z = location['z']
         self.send_command(f'execute in {realm} run tp {username} {x} {y} {z}')
-        self.send_command(f'gamemode survival {username}')
-        with self.lock:
-            del self.online_players[username]['death_punishment']
 
     def parse_server_info(self, line):
         first_token = line.split(' ', 1)[0]
@@ -288,7 +329,7 @@ class Server:
 
     def update_player_data_record(self):
         self.server_data_file.seek(0)
-        self.server_data_file.write(json.dumps(self.server_data, indent=4, sort_keys=True, default=str))
+        self.server_data_file.write(json.dumps(self.server_data, indent=4, sort_keys=True, default=str, skipkeys=True))
         self.server_data_file.truncate()
 
     def handle_input(self):
