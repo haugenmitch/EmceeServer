@@ -71,6 +71,9 @@ class Server:
 
     def stop_server(self):
         self.timer.cancel()
+        for username in self.online_players:
+            self.send_command(f'kick {username} Server is shutting down')
+        self.update_server_data_record()
         if self.process is not None:
             self.send_command('stop')
             self.server_stop_event.wait()
@@ -179,12 +182,12 @@ class Server:
         self.send_command(f'scoreboard players set {username} deaths {self.player_data[username]["death_count"]}')
 
         self.player_data[username]['log_ons'].append(datetime.now())
-        self.update_player_data_record()
+        self.update_server_data_record()
         self.online_players.append(username)
 
     def process_player_death(self, username, death_count):
         self.player_data[username]['death_count'] = death_count
-        self.update_player_data_record()
+        self.update_server_data_record()
         self.send_command(f'tell {username} You have died {death_count} times')
 
     def parse_server_info(self, line):
@@ -197,7 +200,7 @@ class Server:
             self.process_player_logon(username)
         elif line.endswith('left the game'):
             self.player_data[username]['log_offs'].append(datetime.now())
-            self.update_player_data_record()
+            self.update_server_data_record()
             self.online_players.remove(username)
         elif re.search(fr'^{username} has (made the advancement|reached the goal|completed the challenge) \[.*\]$',
                        line):
@@ -220,7 +223,7 @@ class Server:
         new_player['log_ons'] = []
         new_player['log_offs'] = []
         new_player['death_count'] = 0
-        self.update_player_data_record()
+        self.update_server_data_record()
 
     def give_starter_kit(self, username):
         for item in self.starter_kit:
@@ -242,7 +245,7 @@ class Server:
                 logging.error(line)
         self.server_stop_event.set()  # process will only send EOF when done executing
 
-    def update_player_data_record(self):
+    def update_server_data_record(self):
         self.server_data_file.seek(0)
         self.server_data_file.write(json.dumps(self.server_data, indent=4, sort_keys=True, default=str))
         self.server_data_file.truncate()
