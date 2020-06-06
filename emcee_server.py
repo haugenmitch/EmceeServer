@@ -79,8 +79,11 @@ class Server:
 
     def stop_server(self):
         self.timer.cancel()
-        # TODO kick off all players still on the server
-        # TODO save off server data
+
+        for username in self.online_players:
+            self.send_command(f'kick {username} Server is shutting down')
+        self.update_server_data_record()
+
         if self.process is not None:
             self.send_command('stop')
             self.server_stop_event.wait()
@@ -189,7 +192,7 @@ class Server:
         self.send_command(f'scoreboard players set {username} deaths {self.player_data[username]["death_count"]}')
 
         self.player_data[username]['log_ons'].append(datetime.now())
-        self.update_player_data_record()
+        self.update_server_data_record()
         self.online_players.append(username)
         if 'death_punishment' in self.player_data[username]:
             now = datetime.now()
@@ -214,7 +217,7 @@ class Server:
 
     def process_player_death(self, username, death_count):
         self.player_data[username]['death_count'] = death_count
-        self.update_player_data_record()
+        self.update_server_data_record()
         self.send_command(f'tell {username} You have died {death_count} times')
         self.punish_player_death(username, death_count)
 
@@ -290,6 +293,10 @@ class Server:
                        line):
             self.send_command(f'tell {username} Congrats, {username}!')
             self.send_command(f'give {username} minecraft:emerald')
+        elif line.startswith(f'{username} moved too quickly'):
+            pass  # capture line but do nothing with it for right now
+        elif line.startswith(f'{username} lost connection'):
+            pass  # capture line but do nothing with it for right now
         else:  # could be a death message
             death_count_string = self.get_output(f'scoreboard players get {username} deaths',
                                                  rf'{username} has \d+ \[deaths]', True, 3.0)
@@ -305,7 +312,7 @@ class Server:
         new_player['log_ons'] = []
         new_player['log_offs'] = []
         new_player['death_count'] = 0
-        self.update_player_data_record()
+        self.update_server_data_record()
 
     def give_starter_kit(self, username):
         for item in self.starter_kit:
@@ -327,7 +334,7 @@ class Server:
                 logging.error(line)
         self.server_stop_event.set()  # process will only send EOF when done executing
 
-    def update_player_data_record(self):
+    def update_server_data_record(self):
         self.server_data_file.seek(0)
         self.server_data_file.write(json.dumps(self.server_data, indent=4, sort_keys=True, default=str, skipkeys=True))
         self.server_data_file.truncate()
