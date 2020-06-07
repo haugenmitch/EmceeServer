@@ -154,13 +154,17 @@ class Server:
             if 'entities.csv' not in entry[2]:
                 continue
             realm = ':'.join(entry[0].split('/')[-2:])
-            with open(entry[0]+'/entities.csv', newline='') as csv_file:
+            with open(entry[0] + '/entities.csv', newline='') as csv_file:
                 csv_data = csv.reader(csv_file, delimiter=',')
                 next(csv_data)  # bypass column name line
                 for row in csv_data:
                     if row[4] == 'minecraft:player':
                         locations[row[6]] = {'x': row[0], 'y': row[1], 'z': row[2], 'realm': realm}
         return locations
+
+    def get_player_location(self, username):
+        locations = self.get_player_locations()
+        return locations[username] if username in locations else None
 
     def get_output(self, command, success_output, failure_output=None, capture_output=True, timeout=None):
         name = threading.current_thread().name
@@ -213,7 +217,7 @@ class Server:
             if end_time <= now:
                 self.end_punishment(username)
             else:
-                timer = Timer((end_time - now).total_seconds(), self.end_punishment, (username, ))
+                timer = Timer((end_time - now).total_seconds(), self.end_punishment, (username,))
                 timer.start()
                 self.player_data[username]['death_punishment']['timer'] = timer
                 # TODO teleport player to jail if they haven't been yet
@@ -238,42 +242,34 @@ class Server:
                                                               'imprisoned': False}
 
         self.send_command(f'gamemode adventure {username}')
-
-        player_locations = self.get_player_locations()
-        if player_locations is None:
-            # couldn't get locations
-            # TODO if still in punishment at next player mention (?) get their location and teleport them
-            player_locations = {}
-
-        location = player_locations[username] if username in player_locations else None
-        if location is None:
-            # player isn't online
-            pass
-        else:
-            with self.lock:
-                self.player_data[username]['death_punishment']['location'] = location
-            self.imprison_player(username)
+        self.imprison_player(username)
 
         punishment_length = death_count * self.mediumcore['length']
         end_time = datetime.now() + timedelta(seconds=punishment_length)
-        timer = Timer(punishment_length, self.end_punishment, (username, ))
+        timer = Timer(punishment_length, self.end_punishment, (username,))
         with self.lock:
             timer.start()
             self.player_data[username]['death_punishment']['timer'] = timer
             self.player_data[username]['death_punishment']['end_time'] = end_time
 
     def imprison_player(self, username):
+        location = self.get_player_location(username)
+        if location is None:
+            return
+
+        with self.lock:
+            self.player_data[username]['death_punishment']['location'] = location
+
         realm = self.mediumcore['coordinates']['realm']
         x = self.mediumcore['coordinates']['x']
         y = self.mediumcore['coordinates']['y']
         z = self.mediumcore['coordinates']['z']
-        self.send_command(f'execute in {realm} run tp {username} {x} {y} {z}')
-        with self.lock:
-            self.player_data[username]['death_punishment']['imprisoned'] = True
-            # TODO previous line assumes player stayed online to get TPed to prison, could also check TP message after
-            # No entity was found (failure)
-            # Teleported haugenmitch to -67.5, 66.0000002, 14.5 (success)
-            # There are 2 of a max 64 players online: haugenmitch, haugenmatt
+        _line, success = self.get_output(command=f'execute in {realm} run tp {username} {x} {y} {z}',
+                                         success_output=f'Teleported {username} to',
+                                         failure_output='No entity was found', timeout=3.0)
+        if success:
+            with self.lock:
+                self.player_data[username]['death_punishment']['imprisoned'] = True
 
     def end_punishment(self, username):
         with self.lock:
