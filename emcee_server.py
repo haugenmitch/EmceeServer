@@ -69,7 +69,7 @@ class Server:
     def init_server_data(self):
         self.server_data = {'player_data': {}}
 
-    def terminate(self, signal_number, frame):
+    def terminate(self, _signal_number, _frame):
         self.stop_server()
 
     def shutdown(self):
@@ -132,8 +132,9 @@ class Server:
         self.server_stop_event.set()  # process will only send EOF when done executing
 
     def create_debug_report(self):
-        output = self.get_output(command='debug report',
-                                 success_output=r'^.*?]: Created debug report in debug-report-.*$', timeout=3.0)
+        output, _success = self.get_output(command='debug report',
+                                           success_output=r'^.*?]: Created debug report in debug-report-.*$',
+                                           timeout=3.0)
         if output is None:
             logging.error('Could not generate debug report')
             return None
@@ -226,7 +227,7 @@ class Server:
     def process_player_logoff(self, username):
         with self.lock:
             self.player_data[username]['log_offs'].append(datetime.now())
-            self.update_player_data_record()
+            self.update_server_data_record()
             if 'death_punishment' in self.player_data[username]:
                 self.player_data[username]['death_punishment']['timer'].cancel()
             self.online_players.remove(username)
@@ -307,8 +308,8 @@ class Server:
         elif line.startswith(f'{username} lost connection'):
             pass  # capture line but do nothing with it for right now
         else:  # could be a death message
-            death_count_string = self.get_output(command=f'scoreboard players get {username} deaths',
-                                                 success_output=rf'{username} has \d+ \[deaths]', timeout=3.0)
+            death_count_string, _success = self.get_output(command=f'scoreboard players get {username} deaths',
+                                                           success_output=rf'{username} has \d+ \[deaths]', timeout=3.0)
             if death_count_string is None:
                 return
             death_count = int(re.search(rf'{username} has (\d+) \[deaths]', death_count_string).group(1))
