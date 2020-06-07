@@ -243,21 +243,20 @@ class Server:
             self.player_data[username]['death_punishment'] = {'location': None, 'end_time': None, 'timer': None,
                                                               'imprisoned': False}
 
-        self.send_command(f'gamemode adventure {username}')
-        self.imprison_player(username)
-
-        punishment_length = death_count * self.mediumcore['length']
-        end_time = datetime.now() + timedelta(seconds=punishment_length)
-        timer = Timer(punishment_length, self.end_punishment, (username,))
-        with self.lock:
-            timer.start()
+            punishment_length = death_count * self.mediumcore['length']
+            end_time = datetime.now() + timedelta(seconds=punishment_length)
+            timer = Timer(punishment_length, self.end_punishment, (username,))
             self.player_data[username]['death_punishment']['timer'] = timer
             self.player_data[username]['death_punishment']['end_time'] = end_time
+
+            self.send_command(f'gamemode adventure {username}')
+            if self.imprison_player(username):
+                timer.start()
 
     def imprison_player(self, username):
         location = self.get_player_location(username)
         if location is None:
-            return
+            return False
 
         with self.lock:
             self.player_data[username]['death_punishment']['location'] = location
@@ -272,6 +271,9 @@ class Server:
         if success:
             with self.lock:
                 self.player_data[username]['death_punishment']['imprisoned'] = True
+            return True
+
+        return False
 
     def end_punishment(self, username):
         with self.lock:
