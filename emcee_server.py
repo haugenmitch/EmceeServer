@@ -309,6 +309,8 @@ class Server:
             pass  # capture line but do nothing with it for right now
         elif line.startswith(f'{username} lost connection'):
             pass  # capture line but do nothing with it for right now
+        elif line.startswith(f'{username} moved too quickly!'):
+            pass  # capture line but do nothing with it for right now
         else:  # could be a death message
             death_count_string, _success = self.get_output(command=f'scoreboard players get {username} deaths',
                                                            success_output=rf'{username} has \d+ \[deaths]', timeout=3.0)
