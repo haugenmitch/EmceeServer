@@ -220,7 +220,8 @@ class Server:
                 timer = Timer((end_time - now).total_seconds(), self.end_punishment, (username,))
                 timer.start()
                 self.player_data[username]['death_punishment']['timer'] = timer
-                # TODO teleport player to jail if they haven't been yet
+                if not self.player_data[username]['death_punishment']['imprisoned']:
+                    self.imprison_player(username)
 
     def process_player_logoff(self, username):
         with self.lock:
