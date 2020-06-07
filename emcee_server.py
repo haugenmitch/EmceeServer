@@ -8,7 +8,6 @@ import signal
 import subprocess
 import sys
 import threading
-import time as t
 
 from datetime import datetime, date, time, timedelta
 from threading import Thread, Timer, Event, RLock, Condition
@@ -115,10 +114,16 @@ class Server:
                 output_captured = False
                 with self.lock:
                     for name in self.expected_outputs:
-                        if re.search(self.expected_outputs[name]['output_form'], line):
-                            self.expected_outputs[name]['output'] = line
-                            output_captured |= self.expected_outputs[name]['capture_output']
-                            self.lock.notify_all()
+                        if re.search(self.expected_outputs[name]['success_output'], line):
+                            self.expected_outputs[name]['success'] = True
+                        elif self.expected_outputs[name]['failure_output'] is not None and \
+                                re.search(self.expected_outputs[name]['failure_output'], line):
+                            pass
+                        else:
+                            continue  # skip the next lines if it wasn't a success or failure
+                        self.expected_outputs[name]['output'] = line
+                        output_captured |= self.expected_outputs[name]['capture_output']
+                        self.lock.notify_all()
 
                 if not output_captured:
                     t = Thread(name=str(line_count), target=self.parse_line, args=(line,))
@@ -127,7 +132,8 @@ class Server:
         self.server_stop_event.set()  # process will only send EOF when done executing
 
     def create_debug_report(self):
-        output = self.get_output('debug report', r'^.*?]: Created debug report in debug-report-.*$', True, 3.0)
+        output = self.get_output(command='debug report',
+                                 success_output=r'^.*?]: Created debug report in debug-report-.*$', timeout=3.0)
         if output is None:
             logging.error('Could not generate debug report')
             return None
@@ -156,13 +162,17 @@ class Server:
                         locations[row[6]] = {'x': row[0], 'y': row[1], 'z': row[2], 'realm': realm}
         return locations
 
-    def get_output(self, command, output_form, capture_output=True, timeout=None):
+    def get_output(self, command, success_output, failure_output=None, capture_output=True, timeout=None):
         name = threading.current_thread().name
         with self.lock:
-            self.expected_outputs[name] = {'output_form': output_form, 'capture_output': capture_output, 'output': None}
+            self.expected_outputs[name] = {'success_output': success_output, 'failure_output': failure_output,
+                                           'capture_output': capture_output, 'output': None, 'success': False}
             self.send_command(command)
             self.lock.wait_for(lambda: self.expected_outputs[name]['output'] is not None, timeout)
-            return self.expected_outputs[name]['output']
+            line = self.expected_outputs[name]['output']
+            success = self.expected_outputs[name]['success']
+            del self.expected_outputs[name]
+            return line, success
 
     def parse_line(self, line):
         with self.lock:
@@ -206,6 +216,7 @@ class Server:
                 timer = Timer((end_time - now).total_seconds(), self.end_punishment, (username, ))
                 timer.start()
                 self.player_data[username]['death_punishment']['timer'] = timer
+                # TODO teleport player to jail if they haven't been yet
 
     def process_player_logoff(self, username):
         with self.lock:
@@ -260,7 +271,8 @@ class Server:
         with self.lock:
             self.player_data[username]['death_punishment']['imprisoned'] = True
             # TODO previous line assumes player stayed online to get TPed to prison, could also check TP message after
-            # No entity was found
+            # No entity was found (failure)
+            # Teleported haugenmitch to -67.5, 66.0000002, 14.5 (success)
             # There are 2 of a max 64 players online: haugenmitch, haugenmatt
 
     def end_punishment(self, username):
@@ -298,8 +310,8 @@ class Server:
         elif line.startswith(f'{username} lost connection'):
             pass  # capture line but do nothing with it for right now
         else:  # could be a death message
-            death_count_string = self.get_output(f'scoreboard players get {username} deaths',
-                                                 rf'{username} has \d+ \[deaths]', True, 3.0)
+            death_count_string = self.get_output(command=f'scoreboard players get {username} deaths',
+                                                 success_output=rf'{username} has \d+ \[deaths]', timeout=3.0)
             if death_count_string is None:
                 return
             death_count = int(re.search(rf'{username} has (\d+) \[deaths]', death_count_string).group(1))
@@ -345,7 +357,7 @@ class Server:
             self.send_command(cmd)
 
     def server_start(self):
-        self.get_output('', r'^.*]: Done \(\d+.\d+s\)! For help, type "help"$')
+        self.get_output(command='', success_output=r'^.*]: Done \(\d+.\d+s\)! For help, type "help"$')
 
         # setup objectives (do every server start cause why not?)
         for objective in self.objectives:
