@@ -185,7 +185,7 @@ class Server:
                 pass
             elif line.startswith('<'):  # User entered something in chat
                 pass
-            elif line.startswith('['):  # op ran a command
+            elif line.startswith('['):  # op ran a command or objective was triggered
                 pass
             else:  # server info
                 self.parse_server_info(line)
@@ -198,8 +198,10 @@ class Server:
 
         for objective in self.objectives:
             self.send_command(f'scoreboard players set {username} {objective} 0')
-            if 'type' in self.objectives[objective] and self.objectives[objective][type] == 'trigger':
+            if 'type' in self.objectives[objective] and self.objectives[objective]['type'] == 'trigger':
                 self.send_command(f'scoreboard players enable {username} {objective}')
+                self.send_command(f'scoreboard players set {username} {objective + "_cost"} 1')
+                self.send_command(f'scoreboard players enable {username} {objective + "_cost"}')
 
         # setup death count for player
         self.send_command(f'scoreboard players set {username} deaths {self.player_data[username]["death_count"]}')
@@ -362,6 +364,9 @@ class Server:
         # setup objectives (do every server start cause why not?)
         for objective in self.objectives:
             self.send_command(f'scoreboard objectives add {objective} {self.objectives[objective]["type"]}')
+            if self.objectives[objective]['type'] == 'trigger':
+                self.send_command(f'scoreboard objectives add {objective + "_cost"} '
+                                  f'{self.objectives[objective]["type"]}')
 
         self.send_command(f'scoreboard objectives add deaths deathCount')
 
