@@ -30,6 +30,7 @@ class Server:
             with open('server_properties.json', 'r') as spf:
                 properties = json.loads(spf.read())
                 self.mediumcore = properties['mediumcore']
+                self.objectives = properties['objectives']
         except OSError:
             print('Could not find or open server_properties.json')
 
@@ -49,9 +50,6 @@ class Server:
             self.starter_kit = [] if not starter_kit_file_text else json.loads(starter_kit_file_text)
         except OSError:
             self.starter_kit = []
-
-        with open('objectives.json') as objectives_file:
-            self.objectives = json.loads(objectives_file.read())
 
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
