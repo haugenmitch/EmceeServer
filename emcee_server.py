@@ -185,10 +185,25 @@ class Server:
                 pass
             elif line.startswith('<'):  # User entered something in chat
                 pass
-            elif line.startswith('['):  # op ran a command or objective was triggered
-                pass
+            elif line.startswith('['):  # op ran a command or objective was triggered or server message
+                self.parse_command_message(line)
             else:  # server info
                 self.parse_server_info(line)
+
+    def parse_command_message(self, line):
+        if line.startswith('[Server]'):  # server message
+            pass
+        else:
+            line = line[1:-1]  # strip square brackets
+            username = line[:line.index(':')]
+            line = line[line.index(':') + 2:]
+            if line.startswith('Triggered'):
+                groups = re.search(r'Triggered \[(?P<trigger>\w+)] \((?P<mode>added|set) (|value to )(?P<value>\d+)( to'
+                                   r' value|)\)', line)
+                trigger = groups.group('trigger')
+                mode = groups.group('mode')
+                value = int(groups.group('value'))
+                self.send_command(f'say {username} triggered {trigger} with {mode} and a value of {value}')
 
     def process_player_logon(self, username):
         if username not in self.player_data:

@@ -5,4 +5,4 @@ minecraft/
 # Files
 *.log
 server_data.json
-
+*.swp
