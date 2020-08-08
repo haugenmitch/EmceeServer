@@ -1,6 +1,7 @@
 # Directories
 .idea/
 minecraft/
+__pycache__/
 
 # Files
 *.log
