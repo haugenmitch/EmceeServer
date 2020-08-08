@@ -8,6 +8,7 @@ import signal
 import subprocess
 import sys
 import threading
+import commands
 
 from datetime import datetime, date, time, timedelta
 from threading import Thread, Timer, Event, RLock, Condition
@@ -50,6 +51,12 @@ class Server:
             self.starter_kit = [] if not starter_kit_file_text else json.loads(starter_kit_file_text)
         except OSError:
             self.starter_kit = []
+
+        # storing commands in a dict
+        command_list = [x for x in dir(commands) if x[0:2] != '__' and x[-2:] != '__']
+        command_map = {}
+        for command in command_list:
+            command_map = getattr(commands, command)
 
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
@@ -193,7 +200,7 @@ class Server:
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
             pass
-        else:
+        else:  # command was executed
             line = line[1:-1]  # strip square brackets
             username = line[:line.index(':')]
             line = line[line.index(':') + 2:]
