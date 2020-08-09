@@ -31,7 +31,6 @@ class Server:
             with open('server_properties.json', 'r') as spf:
                 properties = json.loads(spf.read())
                 self.mediumcore = properties['mediumcore']
-                self.objectives = properties['objectives']
         except OSError:
             print('Could not find or open server_properties.json')
 
@@ -54,9 +53,9 @@ class Server:
 
         # storing commands in a dict
         command_list = [x for x in dir(commands) if x[0:2] != '__' and x[-2:] != '__']
-        command_map = {}
+        self.command_dict = {}
         for command in command_list:
-            command_map = getattr(commands, command)
+            self.command_dict = getattr(commands, command)
 
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
@@ -218,12 +217,11 @@ class Server:
             self.send_command(f'tell {username} Welcome to the server, {username}!')
             self.give_starter_kit(username)
 
-        for objective in self.objectives:
+        for objective in self.command_dict:
             self.send_command(f'scoreboard players set {username} {objective} 0')
-            if 'type' in self.objectives[objective] and self.objectives[objective]['type'] == 'trigger':
-                self.send_command(f'scoreboard players enable {username} {objective}')
-                self.send_command(f'scoreboard players set {username} {objective + "_cost"} 1')
-                self.send_command(f'scoreboard players enable {username} {objective + "_cost"}')
+            self.send_command(f'scoreboard players enable {username} {objective}')
+            self.send_command(f'scoreboard players set {username} {objective + "_cost"} 0')
+            self.send_command(f'scoreboard players enable {username} {objective + "_cost"}')
 
         # setup death count for player
         self.send_command(f'scoreboard players set {username} deaths {self.player_data[username]["death_count"]}')
@@ -384,11 +382,9 @@ class Server:
         self.get_output(command='', success_output=r'^.*]: Done \(\d+.\d+s\)! For help, type "help"$')
 
         # setup objectives (do every server start cause why not?)
-        for objective in self.objectives:
-            self.send_command(f'scoreboard objectives add {objective} {self.objectives[objective]["type"]}')
-            if self.objectives[objective]['type'] == 'trigger':
-                self.send_command(f'scoreboard objectives add {objective + "_cost"} '
-                                  f'{self.objectives[objective]["type"]}')
+        for objective in self.command_dict:
+            self.send_command(f'scoreboard objectives add {objective} trigger')
+            self.send_command(f'scoreboard objectives add {objective + "_cost"} trigger')
 
         self.send_command(f'scoreboard objectives add deaths deathCount')
 
