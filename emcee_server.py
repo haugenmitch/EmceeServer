@@ -55,7 +55,7 @@ class Server:
         command_list = [x for x in dir(commands) if x[0:2] != '__' and x[-2:] != '__']
         self.command_dict = {}
         for command in command_list:
-            self.command_dict = getattr(commands, command)
+            self.command_dict[command] = getattr(commands, command)
 
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
@@ -209,7 +209,20 @@ class Server:
                 trigger = groups.group('trigger')
                 mode = groups.group('mode')
                 value = int(groups.group('value'))
-                self.send_command(f'say {username} triggered {trigger} with {mode} and a value of {value}')
+                self.process_trigger(username, trigger, mode, value)
+
+    def process_trigger(self, username, trigger, mode, value):
+        if trigger.endswith('_cost'):
+            trigger = trigger[:-5]
+            self.command_dict[trigger].cost(self, username, mode, value)
+            self.send_command(f'scoreboard players enable {username} {trigger + "_cost"}')
+        elif trigger.endswith('_cooldown'):
+            trigger = trigger[:-9]
+            self.command_dict[trigger].cooldown(self, username, mode, value)
+            self.send_command(f'scoreboard players enable {username} {trigger + "_cooldown"}')
+        else:
+            self.command_dict[trigger].execute(self, username, mode, value)
+            self.send_command(f'scoreboard players enable {username} {trigger}')
 
     def process_player_logon(self, username):
         if username not in self.player_data:
@@ -222,6 +235,8 @@ class Server:
             self.send_command(f'scoreboard players enable {username} {objective}')
             self.send_command(f'scoreboard players set {username} {objective + "_cost"} 0')
             self.send_command(f'scoreboard players enable {username} {objective + "_cost"}')
+            self.send_command(f'scoreboard players set {username} {objective + "_cooldown"} 0')
+            self.send_command(f'scoreboard players enable {username} {objective + "_cooldown"}')
 
         # setup death count for player
         self.send_command(f'scoreboard players set {username} deaths {self.player_data[username]["death_count"]}')
@@ -385,6 +400,7 @@ class Server:
         for objective in self.command_dict:
             self.send_command(f'scoreboard objectives add {objective} trigger')
             self.send_command(f'scoreboard objectives add {objective + "_cost"} trigger')
+            self.send_command(f'scoreboard objectives add {objective + "_cooldown"} trigger')
 
         self.send_command(f'scoreboard objectives add deaths deathCount')
 
