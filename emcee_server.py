@@ -204,6 +204,8 @@ class Server:
             username = line[:line.index(':')]
             line = line[line.index(':') + 2:]
             if line.startswith('Triggered'):
+                # TODO look at the logs, message doesn't need to have a mode and value apparently
+                # TODO [haugenmitch: Triggered [set_tp]]
                 groups = re.search(r'Triggered \[(?P<trigger>\w+)] \((?P<mode>added|set) (|value to )(?P<value>\d+)( to'
                                    r' value|)\)', line)
                 trigger = groups.group('trigger')

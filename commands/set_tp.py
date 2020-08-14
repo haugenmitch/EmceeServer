@@ -3,8 +3,8 @@ from emcee_server import Server
 
 def execute(server: Server, username: str, mode: str, value: int):
     location = server.get_player_location(username)
-    server.send_command(f'tellraw {username} "You are at {location["x"]}, {location["y"]}, {location["z"]}, '
-                        f'{location["realm"]}"')
+    server.player_data[username]['tp'] = {'x': location['x'], 'y': location['y'], 'z': location['z'],
+                                          'realm': location['realm']}
 
 
 def cost(server: Server, username: str, mode: str, value: int):
