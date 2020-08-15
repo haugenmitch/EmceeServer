@@ -208,7 +208,7 @@ class Server:
                                    r'( to value|)\)|)', line)
                 trigger = groups.group('trigger')
                 mode = None if groups.group('mode') is None else groups.group('mode')
-                value = None if int(groups.group('value')) is None else groups.group('value')
+                value = None if groups.group('value') is None else int(groups.group('value'))
                 self.process_trigger(username, trigger, mode, value)
 
     def process_trigger(self, username, trigger, mode, value):
