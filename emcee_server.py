@@ -206,11 +206,11 @@ class Server:
             if line.startswith('Triggered'):
                 # TODO look at the logs, message doesn't need to have a mode and value apparently
                 # TODO [haugenmitch: Triggered [set_tp]]
-                groups = re.search(r'Triggered \[(?P<trigger>\w+)] \((?P<mode>added|set) (|value to )(?P<value>\d+)( to'
-                                   r' value|)\)', line)
+                groups = re.search(r'Triggered \[(?P<trigger>\w+)]( \((?P<mode>added|set) (|value to )(?P<value>\d+)'
+                                   r'( to value|)\)|)', line)
                 trigger = groups.group('trigger')
-                mode = groups.group('mode')
-                value = int(groups.group('value'))
+                mode = None if groups.group('mode') is None else groups.group('mode')
+                value = None if int(groups.group('value')) is None else groups.group('value')
                 self.process_trigger(username, trigger, mode, value)
 
     def process_trigger(self, username, trigger, mode, value):
