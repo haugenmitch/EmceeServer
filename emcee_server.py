@@ -204,8 +204,6 @@ class Server:
             username = line[:line.index(':')]
             line = line[line.index(':') + 2:]
             if line.startswith('Triggered'):
-                # TODO look at the logs, message doesn't need to have a mode and value apparently
-                # TODO [haugenmitch: Triggered [set_tp]]
                 groups = re.search(r'Triggered \[(?P<trigger>\w+)]( \((?P<mode>added|set) (|value to )(?P<value>\d+)'
                                    r'( to value|)\)|)', line)
                 trigger = groups.group('trigger')
@@ -225,6 +223,23 @@ class Server:
         else:
             self.command_dict[trigger].execute(self, username, mode, value)
             self.send_command(f'scoreboard players enable {username} {trigger}')
+
+    def get_player_item_count(self, username, item):
+        cmd = f'clear {username} {item} 0'
+        output = rf'Found (?P<value>\d+) matching items on player {username}'
+        line = self.get_output(cmd, output)
+        return int(re.search(output, line).group('value'))
+
+    def remove_player_items(self, username, item, count):
+        if count < 1:
+            return False
+        cmd = f'clear {username} {item} {count}'
+        output = rf'Removed (?P<value>\d+) items from player {username}'
+        line = self.get_output(cmd, output)
+        removed_count = int(re.search(output, line).group('value'))
+        if removed_count != count:
+            self.send_command(f'give {username} {item} {removed_count}')
+        return removed_count == count
 
     def process_player_logon(self, username):
         if username not in self.player_data:
