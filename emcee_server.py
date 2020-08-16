@@ -164,7 +164,7 @@ class Server:
                 next(csv_data)  # bypass column name line
                 for row in csv_data:
                     if row[4] == 'minecraft:player':
-                        locations[row[6]] = {'x': row[0], 'y': row[1], 'z': row[2], 'realm': realm}
+                        locations[row[6]] = {'x': float(row[0]), 'y': float(row[1]), 'z': float(row[2]), 'realm': realm}
         return locations
 
     def get_player_location(self, username):
@@ -227,7 +227,7 @@ class Server:
     def get_player_item_count(self, username, item):
         cmd = f'clear {username} {item} 0'
         output = rf'Found (?P<value>\d+) matching items on player {username}'
-        line = self.get_output(cmd, output)
+        line, _success = self.get_output(cmd, output)
         return int(re.search(output, line).group('value'))
 
     def remove_player_items(self, username, item, count):
@@ -235,7 +235,10 @@ class Server:
             return False
         cmd = f'clear {username} {item} {count}'
         output = rf'Removed (?P<value>\d+) items from player {username}'
-        line = self.get_output(cmd, output)
+        fail_output = f'No items were found on player {username}'
+        line, _success = self.get_output(cmd, output, fail_output)
+        if re.search(fail_output, line) is not None:
+            return False
         removed_count = int(re.search(output, line).group('value'))
         if removed_count != count:
             self.send_command(f'give {username} {item} {removed_count}')
@@ -353,7 +356,7 @@ class Server:
             self.process_player_logon(username)
         elif line.endswith('left the game'):
             self.process_player_logoff(username)
-        elif re.search(fr'^{username} has (made the advancement|reached the goal|completed the challenge) \[.*\]$',
+        elif re.search(fr'^{username} has (made the advancement|reached the goal|completed the challenge) \[.*]$',
                        line):
             self.send_command(f'tell {username} Congrats, {username}!')
             self.send_command(f'give {username} minecraft:emerald')
