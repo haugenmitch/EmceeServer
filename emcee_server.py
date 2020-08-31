@@ -244,6 +244,16 @@ class Server:
             self.send_command(f'give {username} {item} {removed_count}')
         return removed_count == count
 
+    def warn_player(self, username, message):
+        # TODO 1.16 /tellraw {username} {"text":"{message}","color":"#FF0000"}
+        self.send_command(f'tellraw {username} {{"text":"{message}","color":"dark_red"}}')
+
+    def tell_player(self, username, message):
+        self.send_command(f'tellraw {username} {{"text":"{message}"}}')
+
+    def laud_player(self, username, message):
+        self.send_command(f'tellraw {username} {{"text":"{message}","color":"green"}}')
+
     def process_player_logon(self, username):
         if username not in self.player_data:
             self.create_new_player(username)
@@ -381,6 +391,7 @@ class Server:
         new_player['log_ons'] = []
         new_player['log_offs'] = []
         new_player['death_count'] = 0
+        new_player['cooldowns'] = {}
         self.update_server_data_record()
 
     def give_starter_kit(self, username):
