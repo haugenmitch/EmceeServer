@@ -190,11 +190,57 @@ class Server:
             if line.startswith('*'):  # User used /me command
                 pass
             elif line.startswith('<'):  # User entered something in chat
-                pass
+                self.parse_user_chat(line)
             elif line.startswith('['):  # op ran a command or objective was triggered or server message
                 self.parse_command_message(line)
             else:  # server info
                 self.parse_server_info(line)
+
+    def parse_user_chat(self, line):
+        groups = re.search(r'\<(?P<username>\w+)\> (?P<text>.+)$', line)
+        username = groups.group('username')
+        text = groups.group('text').strip()
+        if text.startswith('*'):
+            text = text[1:].strip()
+            if text == '':
+                pass
+            elif text == 'mod':
+                if 'server_moderators' not in self.server_data:
+                    self.server_data['server_moderators'] = [username]
+                    self.laud_player(username, 'You have made yourself a mod')
+                elif username not in self.server_data['server_moderators']:
+                    self.warn_player(username, 'You are not a server mod')
+                else:
+                    self.tell_player(username, 'You are already a mod')
+            elif username in self.server_data['server_moderators']:
+                self.parse_player_text_command(username, text)
+
+    def parse_player_text_command(self, username, command):
+        tokens = command.split()
+        if tokens[0] == 'mod':
+            if len(tokens) == 2:
+                if tokens[1] in self.server_data['server_moderators']:
+                    self.tell_player(f'{tokens[1]} is already on the mod list')
+                else:
+                    self.server_data['server_moderators'].append(tokens[1])
+                    self.laud_player(f'{tokens[1]} has been modded')
+            else:
+                self.tell_player(username, 'Command not recognized')
+                return
+        elif tokens[0] == 'demod':
+            if len(tokens) == 1:
+                self.server_data['server_moderators'].remove(username)
+                self.laud_player('You are no longer a mod')
+            elif len(tokens) == 2:
+                self.server_data['server_moderators'].remove(tokens[1])
+                self.laud_player(f'{tokens[1]} has been removed from the mod list')
+            else:
+                self.tell_player(username, 'Command not recognized')
+                return
+            if len(self.server_data['server_moderators']) == 0:
+                del self.server_data['server_moderators']
+        else:
+            self.send_command(command)
 
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
