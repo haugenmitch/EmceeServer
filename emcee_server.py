@@ -201,46 +201,46 @@ class Server:
         username = groups.group('username')
         text = groups.group('text').strip()
         if text.startswith('*'):
-            text = text[1:].strip()
-            if text == '':
-                pass
-            elif text == 'mod':
-                if 'server_moderators' not in self.server_data:
-                    self.server_data['server_moderators'] = [username]
-                    self.laud_player(username, 'You have made yourself a mod')
-                elif username not in self.server_data['server_moderators']:
-                    self.warn_player(username, 'You are not a server mod')
-                else:
-                    self.tell_player(username, 'You are already a mod')
-            elif username in self.server_data['server_moderators']:
-                self.parse_player_text_command(username, text)
+            self.parse_player_text_command(username, text)
+        else:
+            pass  # non-command user chat
 
     def parse_player_text_command(self, username, command):
+        command = command[1:] if command.startswith('*') else command
         tokens = command.split()
-        if tokens[0] == 'mod':
-            if len(tokens) == 2:
-                if tokens[1] in self.server_data['server_moderators']:
-                    self.tell_player(f'{tokens[1]} is already on the mod list')
+        mods = self.server_data['server_moderators'] if 'server_moderators' in self.server_data else None
+        if tokens[0] == 'book':
+            pass  # give the user a copy of the server book
+        elif tokens[0] == 'mod':
+            user = username if len(tokens) < 2 else tokens[1]
+            if user == username and mods is None:
+                self.server_data['server_moderators'] = [user]
+                self.laud_player(username, 'You have been made a moderator')
+            elif mods is not None and username in mods:
+                if user not in mods:
+                    mods.append(user)
+                    self.laud_player(username, f'{user} has been made a moderator')
                 else:
-                    self.server_data['server_moderators'].append(tokens[1])
-                    self.laud_player(f'{tokens[1]} has been modded')
+                    self.tell_player(username, f'{user} is already a moderator')
             else:
-                self.tell_player(username, 'Command not recognized')
-                return
-        elif tokens[0] == 'demod':
-            if len(tokens) == 1:
-                self.server_data['server_moderators'].remove(username)
-                self.laud_player('You are no longer a mod')
-            elif len(tokens) == 2:
-                self.server_data['server_moderators'].remove(tokens[1])
-                self.laud_player(f'{tokens[1]} has been removed from the mod list')
+                self.warn_player(username, 'You are not a moderator')
+        elif mods is not None and username in mods:  # mods only
+            if tokens[0] == 'demod':
+                user = username if len(tokens) < 2 else tokens[1]
+                if user in mods:
+                    mods.remove(user)
+                    self.laud_player(username, f'{user} has been removed from the mod list')
+                    if len(mods) == 0:
+                        del self.server_data['server_moderators']
+                        self.laud_player(username, 'All mods have been removed')
+                else:
+                    self.tell_player(username, f'{user} is not a moderator')
+            elif tokens[0] == 'modlist':
+                self.tell_player(username, ', '.join(mods))
             else:
-                self.tell_player(username, 'Command not recognized')
-                return
-            if len(self.server_data['server_moderators']) == 0:
-                del self.server_data['server_moderators']
+                self.send_command(command)
         else:
-            self.send_command(command)
+            self.tell_player(username, 'Command not recognized')
 
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
