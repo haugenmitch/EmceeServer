@@ -237,10 +237,25 @@ class Server:
                     self.tell_player(username, f'{user} is not a moderator')
             elif tokens[0] == 'modlist':
                 self.tell_player(username, ', '.join(mods))
+            elif tokens[0] == 'setworldborder':
+                try:
+                    size = int(tokens[1])
+                    self.create_world_border(username, size)
+                except (ValueError, TypeError, IndexError):
+                    self.warn_player(username, 'setworldborder requires an integer size argument')
             else:
                 self.send_command(command)
         else:
             self.tell_player(username, 'Command not recognized')
+
+    def create_world_border(self, username, size):
+        location = self.get_player_location(username)
+        if location is None:
+            self.warn_player(username, 'Your location could not be found')
+        x, z = float(round(location['x'])), float(round(location['z']))
+        self.send_command(f'worldborder center {x} {z}')
+        self.send_command(f'worldborder set {size}')
+        self.server_data['worldborder'] = {'center': {'x': x, 'z': z}, 'size': size}
 
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
