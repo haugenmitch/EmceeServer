@@ -39,7 +39,7 @@ class Server:
         except OSError:
             self.server_data_file = open('server_data.json', 'w+')
         file_text = self.server_data_file.read()
-        self.server_data = {} if not file_text else json.loads(file_text)
+        self.server_data = {} if not file_text else json.loads(file_text, object_hook=self.recursive_datetime_parser)
         if self.server_data == {}:
             self.init_server_data()
         self.player_data = self.server_data['player_data']
@@ -69,6 +69,27 @@ class Server:
         self.expected_outputs = {}
         self.lock = Condition(lock=RLock())
         self.online_players = []
+
+    def recursive_datetime_parser(self, d):
+        if type(d) is list:
+            for i in range(len(d)):
+                if type(d[i]) is dict or type(d[i]) is list:
+                    d[i] = self.recursive_datetime_parser(d[i])
+                elif type(d[i]) is str:
+                    try:
+                        d[i] = datetime.fromisoformat(d[i])
+                    except ValueError:
+                        pass
+        elif type(d) is dict:
+            for k, v in d.items():
+                if type(v) is dict or type(v) is list:
+                    d[k] = self.recursive_datetime_parser(v)
+                elif type(v) is str:
+                    try:
+                        d[k] = datetime.fromisoformat(v)
+                    except ValueError:
+                        pass
+        return d
 
     def init_server_data(self):
         self.server_data = {'player_data': {}}
