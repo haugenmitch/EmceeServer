@@ -276,7 +276,18 @@ class Server:
         x, z = float(round(location['x'])), float(round(location['z']))
         self.send_command(f'worldborder center {x} {z}')
         self.send_command(f'worldborder set {size}')
-        self.server_data['wall'] = {'center': {'x': x, 'z': z}, 'size': size}
+        self.server_data['wall'] = {'center': {'x': x, 'z': z}, 'min_size': size, 'cooldown': datetime.now()}
+
+    def get_wall_size(self):
+        output = r'The world border is currently (?P<size>\d+) blocks wide'
+        line, _success = self.get_output('worldborder get', output)
+        return int(re.search(output, line).group('size'))
+
+    def shrink_wall(self):
+        wall_size = self.get_wall_size()
+        min_size = self.server_data['wall']['min_size']
+        time_s = (wall_size - min_size) / 2 * 8640
+        self.send_command(f'worldborder set {min_size} {time_s}')
 
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
