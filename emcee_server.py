@@ -500,6 +500,7 @@ class Server:
             self.send_command(f'scoreboard objectives add {objective + "_cooldown"} trigger')
 
         self.send_command(f'scoreboard objectives add deaths deathCount')
+        self.send_command('gamerule doImmediateRespawn true')
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
