@@ -338,8 +338,7 @@ class Server:
         return removed_count == count
 
     def warn_player(self, username, message):
-        # TODO 1.16 /tellraw {username} {"text":"{message}","color":"#FF0000"}
-        self.send_command(f'tellraw {username} {{"text":"{message}","color":"dark_red"}}')
+        self.send_command(f'tellraw {username} {{"text":"{message}","color":"#FF0000"}}')
 
     def tell_player(self, username, message):
         self.send_command(f'tellraw {username} {{"text":"{message}"}}')
@@ -527,6 +526,7 @@ class Server:
             self.send_command(f'scoreboard objectives add {objective + "_cooldown"} trigger')
 
         self.send_command(f'scoreboard objectives add deaths deathCount')
+        self.send_command('gamerule doImmediateRespawn true')
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
