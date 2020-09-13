@@ -312,8 +312,7 @@ class Server:
         return removed_count == count
 
     def warn_player(self, username, message):
-        # TODO 1.16 /tellraw {username} {"text":"{message}","color":"#FF0000"}
-        self.send_command(f'tellraw {username} {{"text":"{message}","color":"dark_red"}}')
+        self.send_command(f'tellraw {username} {{"text":"{message}","color":"#FF0000"}}')
 
     def tell_player(self, username, message):
         self.send_command(f'tellraw {username} {{"text":"{message}"}}')
