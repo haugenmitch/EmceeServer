@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -60,6 +61,8 @@ class Server:
         for command in command_list:
             self.command_dict[command] = getattr(commands, command)
 
+        self.cleanup_debug_folder()
+
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
         self.max_memory = '-Xmx' + java['MaxMemory']
@@ -97,6 +100,20 @@ class Server:
 
     def init_server_data(self):
         self.server_data = {'player_data': {}}
+
+    def cleanup_debug_folder(self):
+        if self.server_dir is None:
+            return
+        debug_dir = self.server_dir + 'debug'
+        for filename in os.listdir(debug_dir):
+            filepath = os.path.join(debug_dir, filename)
+            try:
+                if os.path.isfile(filepath) or os.path.islink(filepath):
+                    os.remove(filepath)
+                elif os.path.isdir(filepath):
+                    shutil.rmtree(filepath)
+            except OSError as e:
+                logging.error(f'Failed to remove {filepath} because: {e}')
 
     def terminate(self, _signal_number, _frame):
         self.stop_server()
