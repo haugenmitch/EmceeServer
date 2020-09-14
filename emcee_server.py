@@ -269,6 +269,8 @@ class Server:
                     self.create_wall(username, size)
                 except (ValueError, TypeError, IndexError):
                     self.warn_player(username, 'create_wall requires an integer size argument')
+            elif tokens[0] == 'create_jail':
+                self.create_jail(username)
             else:
                 self.send_command(command)
         else:
@@ -293,6 +295,11 @@ class Server:
         min_size = self.server_data['wall']['min_size']
         time_s = (wall_size - min_size) / 2 * 8640
         self.send_command(f'worldborder set {min_size} {time_s}')
+
+    def create_jail(self, username):
+        location = self.get_player_location(username)
+        if location is None:
+            self.warn_player(username, 'Your location could not be found')
 
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
