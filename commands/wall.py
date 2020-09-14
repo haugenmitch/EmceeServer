@@ -49,7 +49,8 @@ def cooldown(server: Server, username: str, mode: str = None, value: int = None)
 
 def __cooldown_helper__(server: Server):
     now = datetime.datetime.now()
-    cd = server.server_data['wall']['cooldown'] if 'cooldown' in server.server_data['wall'] else now
+    cd = server.server_data['wall']['cooldown'] if 'wall' in server.server_data and 'cooldown' in \
+                                                   server.server_data['wall'] else now
     if cd <= now:
         return None
     else:
