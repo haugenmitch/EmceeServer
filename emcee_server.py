@@ -63,7 +63,8 @@ class Server:
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
         self.max_memory = '-Xmx' + java['MaxMemory']
-        self.server_dir = java['ServerDir']
+        self.server_dir = java['ServerDir'] if java['ServerDir'] is not '' else (os.getcwd() + '/minecraft/')
+        self.server_dir += '' if self.server_dir.endswith('/') else '/'
         self.sc = ['java', self.starting_memory, self.max_memory, '-jar', 'server.jar', 'nogui']
         self.process = None
         self.timer = None
@@ -167,7 +168,7 @@ class Server:
             logging.error('Could not generate debug report')
             return None
         report_name = output[output.index('debug-report-'):]
-        report_dir = f"{self.config['Java']['ServerDir']}debug/{report_name}"
+        report_dir = f'{self.server_dir}debug/{report_name}'
         report_path = report_dir + '.zip'
         with ZipFile(report_path, 'r') as zip_file:
             zip_file.extractall(report_dir)
@@ -553,7 +554,7 @@ class Server:
         stdin_thread = Thread(name='stdin', target=self.handle_input)
         stdin_thread.daemon = True
         run_as_service = self.config.getboolean('DEFAULT', 'RunAsService')
-        if not run_as_service:
+        if not run_as_service:  # if this is run as a service, there is no need to listen for terminal input
             stdin_thread.start()
 
         # server start
@@ -573,6 +574,8 @@ class Server:
         self.server_data_file.close()
 
         if self.is_shutting_down:
+            if self.config.getboolean('DEFAULT', 'UpdateOnReboot'):
+                os.system(f'git -C {os.getcwd()} pull')
             os.system('sudo reboot now')
         else:
             sys.exit()
