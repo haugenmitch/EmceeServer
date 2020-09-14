@@ -234,7 +234,8 @@ class Server:
         tokens = command.split()
         mods = self.server_data['server_moderators'] if 'server_moderators' in self.server_data else None
         if tokens[0] == 'book':
-            pass  # give the user a copy of the server book
+            if self.player_guide is not None:
+                self.send_command(f'give {username} {self.player_guide}')
         elif tokens[0] == 'mod':
             user = username if len(tokens) < 2 else tokens[1]
             if user == username and mods is None:
