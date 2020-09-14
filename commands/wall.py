@@ -10,6 +10,9 @@ EPSILON = 0.00001
 
 
 def execute(server: Server, username: str, mode: str = None, value: int = None):
+    if 'wall' not in server.server_data:
+        server.tell_player(username, 'The world border has not been set yet')
+        return False
     if __cooldown_helper__(server) is not None:
         server.warn_player(username, '[Wall] is still in cooldown')
         return False
@@ -17,10 +20,10 @@ def execute(server: Server, username: str, mode: str = None, value: int = None):
             server.remove_player_items(username, 'minecraft:emerald', WALL_COST):
         server.warn_player(username, 'You do not have enough emeralds')
         return False
-    server.send_command(f'worldborder add {EPSILON:.5f}')  # this line handles a Minecraft bug where the growth rate
-    # ignores the growth time given and instead takes on the rate of the worldborder if it is currently
-    # growing/shrinking. This line stops the wall movement before setting it again.
-    # TODO add this bug to MC bug tracker after testing in 1.16
+
+    # The following line handles a Minecraft bug where the growth rate ignores the growth time given.
+    # See https://bugs.mojang.com/browse/MC-200233 for more.
+    server.send_command(f'worldborder add {EPSILON:.5f}')
     server.send_command(f'worldborder add {BLOCKS_PER_CALL-EPSILON} {GROWTH_TIME_S}')
     server.server_data['wall']['cooldown'] = datetime.datetime.now() + datetime.timedelta(seconds=GROWTH_TIME_S)
     server.server_data['wall']['timer'] = Timer(GROWTH_TIME_S, server.shrink_wall)
