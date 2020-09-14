@@ -1,0 +1,46 @@
+{
+    "starter_kit": [
+        [
+            "minecraft:leather_helmet{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Helmet\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"I love helmets. I LOVE\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\",\"[{\\\"text\\\":\\\"HELMETS!\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"],\"color\":4214688},\"Enchantments\":[{\"id\":\"protection\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":2}]}",
+            1,
+            "armor.head"
+        ],
+        [
+            "minecraft:leather_chestplate{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Chestplate\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"Damn! I look good in\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\",\"[{\\\"text\\\":\\\"leather.\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"],\"color\":4214688},\"Enchantments\":[{\"id\":\"protection\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":2}]}",
+            1,
+            "armor.chest"
+        ],
+        [
+            "minecraft:leather_leggings{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Leggings\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"Hot pants!\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"],\"color\":4214688},\"Enchantments\":[{\"id\":\"protection\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":2}]}",
+            1,
+            "armor.legs"
+        ],
+        [
+            "minecraft:leather_boots{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Boots\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"Eh, I prefer crocs...\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"],\"color\":4214688},\"Enchantments\":[{\"id\":\"protection\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":2}]}",
+            1,
+            "armor.feet"
+        ],
+        [
+            "minecraft:wooden_sword{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Sword\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"It's dangerous to go\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\",\"[{\\\"text\\\":\\\"alone...\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"]},\"Enchantments\":[{\"id\":\"sharpness\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":3}]}"
+        ],
+        [
+            "minecraft:wooden_pickaxe{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Pickaxe\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"Back to the mines!\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"]},\"Enchantments\":[{\"id\":\"efficiency\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":3}]}"
+        ],
+        [
+            "minecraft:wooden_axe{\"display\":{\"Name\":\"[{\\\"text\\\":\\\"Starter Axe\\\",\\\"italic\\\":true,\\\"color\\\":\\\"dark_blue\\\"}]\",\"Lore\":[\"[{\\\"text\\\":\\\"An axe made of wood? Huh.\\\",\\\"italic\\\":false,\\\"color\\\":\\\"white\\\"}]\"]},\"Enchantments\":[{\"id\":\"efficiency\",\"lvl\":2},{\"id\":\"unbreaking\",\"lvl\":3}]}"
+        ],
+        [
+            "minecraft:torch",
+            20
+        ],
+        [
+            "minecraft:bread",
+            5
+        ],
+        [
+            "minecraft:emerald",
+            10
+        ]
+    ],
+    "player_guide": "written_book{pages:['[\"\",{\"text\":\"Welcome to the world of \"},{\"text\":\"Vellum\",\"italic\":true,\"color\":\"dark_green\"},{\"text\":\"!\\\\n\\\\nThis server is owned and run by \",\"color\":\"reset\"},{\"text\":\"Emcee\",\"color\":\"dark_green\"},{\"text\":\" (haugenmitch).\\\\n\\\\n\",\"color\":\"reset\"},{\"text\":\"Welcome Page ............... 1\",\"clickEvent\":{\"action\":\"change_page\",\"value\":1}},{\"text\":\"\\\\n\"},{\"text\":\"Rules  ................................. 2\",\"clickEvent\":{\"action\":\"change_page\",\"value\":2}},{\"text\":\"\\\\n\"},{\"text\":\"Mediumcore ..................... 3\",\"clickEvent\":{\"action\":\"change_page\",\"value\":3}},{\"text\":\"\\\\n\"},{\"text\":\"World Border ............... 4\",\"clickEvent\":{\"action\":\"change_page\",\"value\":4}},{\"text\":\"\\\\n\"},{\"text\":\"Commands ......................... 5\",\"clickEvent\":{\"action\":\"change_page\",\"value\":5}}]','[\"\",{\"text\":\"[\",\"color\":\"dark_gray\"},{\"text\":\"Rules\",\"color\":\"gray\"},{\"text\":\"]\",\"color\":\"dark_gray\"},{\"text\":\"\\\\n\\\\n1. Respect others\\\\n2. Have fun!\\\\n3. No griefing, block spamming, or nerd poles\\\\n4. Keep chat civil\\\\n5. Vanilla only (besides the changes this server implements)\\\\n6. No lag machines\",\"color\":\"reset\"}]','[\"\",{\"text\":\"[\",\"color\":\"gold\"},{\"text\":\"Mediumcore\",\"color\":\"red\"},{\"text\":\"]\",\"color\":\"gold\"},{\"text\":\"\\\\n\\\\nThis is a \\\\\"mediumcore\\\\\" server, meaning deaths are punished, but not permanently. Every death increases the penalty length by 1 minute. This can be mitigated to an extent by \\\\\"tithing\\\\\".\",\"color\":\"reset\"}]','[\"\",{\"text\":\"[\",\"color\":\"blue\"},{\"text\":\"World Border\",\"color\":\"dark_green\"},{\"text\":\"]\",\"color\":\"blue\"},{\"text\":\"\\\\n\\\\nThis server has a dynamic world border. Calling the [Wall] command will grow the border radius by 10 blocks. Conversely, the border will shrink by 10 blocks per online player per hour to a radius of 1,000 blocks.\",\"color\":\"reset\"}]','[\"\",{\"text\":\"[\",\"color\":\"dark_aqua\"},{\"text\":\"Commands\",\"color\":\"light_purple\"},{\"text\":\"]\",\"color\":\"dark_aqua\"},{\"text\":\"\\\\n\\\\n\",\"color\":\"reset\"},{\"text\":\"1. Tithe\",\"clickEvent\":{\"action\":\"change_page\",\"value\":6}},{\"text\":\"\\\\n\"},{\"text\":\"2. Set Teleport\",\"clickEvent\":{\"action\":\"change_page\",\"value\":7}},{\"text\":\"\\\\n\"},{\"text\":\"3. Teleport\",\"clickEvent\":{\"action\":\"change_page\",\"value\":8}},{\"text\":\"\\\\n\"},{\"text\":\"4. Wall\",\"clickEvent\":{\"action\":\"change_page\",\"value\":9}},{\"text\":\"\\\\n\\\\nAll commands can be executed by clicking in this book, or by using the \\\\\"/trigger\\\\\" command.\"}]','[\"\",{\"text\":\"[Tithe]\\\\n\\\\n\"},{\"text\":\"[Execute]\",\"color\":\"dark_gray\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger tithe\"}},{\"text\":\"\\\\n\",\"color\":\"reset\"},{\"text\":\"[Cost]\",\"color\":\"dark_green\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger tithe_cost\"}},{\"text\":\"\\\\n\",\"color\":\"reset\"},{\"text\":\"[Cooldown]\",\"color\":\"dark_red\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger tithe_cooldown\"}},{\"text\":\"\\\\n\\\\nThis command reduces the punishment length by 1 minute. The cost increases every time it is used.\",\"color\":\"reset\"}]','[\"\",{\"text\":\"[Set Teleport]\\\\n\\\\n\"},{\"text\":\"[Execute]\",\"color\":\"dark_gray\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger set_tp\"}},{\"text\":\"\\\\n\",\"color\":\"reset\"},{\"text\":\"[Cost]\",\"color\":\"dark_green\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger set_tp_cost\"}},{\"text\":\"\\\\n\",\"color\":\"reset\"},{\"text\":\"[Cooldown]\",\"color\":\"dark_red\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger set_tp_cooldown\"}},{\"text\":\"\\\\n\\\\nThis command sets your [Teleport] command destination.\",\"color\":\"reset\"}]','[\"\",{\"text\":\"[Teleport]\\\\n\\\\n\"},{\"text\":\"[Execute]\",\"color\":\"dark_gray\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger tp\"}},{\"text\":\"\\\\n\",\"color\":\"reset\"},{\"text\":\"[Cost]\",\"color\":\"dark_green\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger tp_cost\"}},{\"text\":\"\\\\n\",\"color\":\"reset\"},{\"text\":\"[Cooldown]\",\"color\":\"dark_red\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger tp_cooldown\"}},{\"text\":\"\\\\n\\\\nThis command teleports you to your teleport destination. Cost is determined by distance and realm.\",\"color\":\"reset\"}]','[\"\",{\"text\":\"[Wall]\\\\n\\\\n\"},{\"text\":\"[Execute]\",\"color\":\"dark_gray\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger wall\"}},{\"text\":\"\\\\n\",\"color\":\"reset\"},{\"text\":\"[Cost]\",\"color\":\"dark_green\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger wall_cost\"}},{\"text\":\"\\\\n\",\"color\":\"reset\"},{\"text\":\"[Cooldown]\",\"color\":\"dark_red\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger wall_cooldown\"}},{\"text\":\"\\\\n\\\\nThis command expands the world border radius.\",\"color\":\"reset\"}]','{\"text\":\"Thank you for reading the player\\'s guide. If you lose this book at any point, you can get a new copy by typing \\\\\"*book\\\\\" into the chat.\\\\n\\\\nEnjoy your time here!\\\\n\\\\n-Emcee\"}'],title:\"Player's Guide\",author:Emcee,generation:3,display:{Lore:[\"Vellum's #1 bestseller\"]}}"
+}

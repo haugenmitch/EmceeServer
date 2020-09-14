@@ -45,11 +45,14 @@ class Server:
         self.player_data = self.server_data['player_data']
 
         try:
-            starter_kit_file = open('starter_kit.json', 'r')
-            starter_kit_file_text = starter_kit_file.read()
-            self.starter_kit = [] if not starter_kit_file_text else json.loads(starter_kit_file_text)
+            items_file = open('items.json', 'r')
+            items_file_text = items_file.read()
+            items = None if not items_file_text else json.loads(items_file_text)
+            self.starter_kit = items['starter_kit'] if items is not None and 'starter_kit' in items else None
+            self.player_guide = items['player_guide'] if items is not None and 'player_guide' in items else None
         except OSError:
-            self.starter_kit = []
+            self.starter_kit = None
+            self.player_guide = None
 
         # storing commands in a dict
         command_list = [x for x in dir(commands) if x[0:2] != '__' and x[-2:] != '__']
@@ -350,6 +353,7 @@ class Server:
         if username not in self.player_data:
             self.create_new_player(username)
             self.send_command(f'tell {username} Welcome to the server, {username}!')
+            self.send_command(f'give {username} {self.player_guide}')
             self.give_starter_kit(username)
 
         for objective in self.command_dict:
