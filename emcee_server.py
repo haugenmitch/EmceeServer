@@ -28,13 +28,6 @@ class Server:
                             level=logging.INFO)
 
         try:
-            with open('server_properties.json', 'r') as spf:
-                properties = json.loads(spf.read())
-                self.mediumcore = properties['mediumcore']
-        except OSError:
-            print('Could not find or open server_properties.json')
-
-        try:
             self.server_data_file = open('server_data.json', 'r+')
         except OSError:
             self.server_data_file = open('server_data.json', 'w+')
@@ -414,14 +407,15 @@ class Server:
         self.player_data[username]['death_count'] = death_count
         self.update_server_data_record()
         self.send_command(f'tell {username} You have died {death_count} times')
-        self.punish_player_death(username, death_count)
+        if 'jail' in self.server_data:
+            self.punish_player_death(username, death_count)
 
     def punish_player_death(self, username, death_count):
         with self.lock:
             self.player_data[username]['death_punishment'] = {'location': None, 'end_time': None, 'timer': None,
                                                               'imprisoned': False}
 
-            punishment_length = death_count * self.mediumcore['length']
+            punishment_length = death_count * self.server_data['jail']['length']
             end_time = datetime.now() + timedelta(seconds=punishment_length)
             timer = Timer(punishment_length, self.end_punishment, (username,))
             self.player_data[username]['death_punishment']['timer'] = timer
@@ -439,10 +433,10 @@ class Server:
         with self.lock:
             self.player_data[username]['death_punishment']['location'] = location
 
-        realm = self.mediumcore['coordinates']['realm']
-        x = self.mediumcore['coordinates']['x']
-        y = self.mediumcore['coordinates']['y']
-        z = self.mediumcore['coordinates']['z']
+        realm = self.server_data['jail']['location']['realm']
+        x = self.server_data['jail']['location']['x']
+        y = self.server_data['jail']['location']['y']
+        z = self.server_data['jail']['location']['z']
         _line, success = self.get_output(command=f'execute in {realm} run tp {username} {x} {y} {z}',
                                          success_output=f'Teleported {username} to',
                                          failure_output='No entity was found', timeout=3.0)
