@@ -11,9 +11,9 @@ def execute(server: Server, username: str, mode: str = None, value: int = None):
     if total_cost is None:
         server.warn_player(username, 'Your teleport destination is not set')
         return False
-    player_data = server.player_data[username]
-    location = player_data['tp'] if 'tp' in server.player_data[username] else None
-    if location is None:
+    destination = server.player_data[username]['tp']['destination'] if 'destination' \
+                                                                       in server.player_data[username]['tp'] else None
+    if destination is None:
         server.warn_player(username, 'Your teleport destination is not set')
         return False
     if __cooldown_helper__(server, username) is not None:
@@ -23,10 +23,10 @@ def execute(server: Server, username: str, mode: str = None, value: int = None):
             server.remove_player_items(username, 'minecraft:emerald', total_cost):
         server.warn_player(username, 'You do not have enough emeralds')
         return False
-    server.send_command(f'execute in {location["realm"]} run tp {username} {location["x"]} {location["y"]} '
-                        f'{location["z"]}')
-    player_data['cooldowns']['tp'] = datetime.datetime.now() \
-                                     + datetime.timedelta(seconds=total_cost * TP_COOLDOWN_PER_EMERALD_S)
+    server.send_command(f'execute in {destination["realm"]} run tp {username} {destination["x"]} {destination["y"]} '
+                        f'{destination["z"]}')
+    server.player_data[username]['tp']['cooldown'] = datetime.datetime.now()\
+                                    + datetime.timedelta(seconds=total_cost * TP_COOLDOWN_PER_EMERALD_S)
     return True
 
 
@@ -41,13 +41,14 @@ def cost(server: Server, username: str, mode: str = None, value: int = None):
 
 def __cost_helper__(server: Server, username: str):
     current_location = server.get_player_location(username)
-    tp_location = server.player_data[username]['tp'] if 'tp' in server.player_data[username] else None
-    if current_location is None or tp_location is None:
+    destination = server.player_data[username]['tp']['destination'] if 'destination' in \
+                                                                       server.player_data[username]['tp'] else None
+    if current_location is None or destination is None:
         return None
-    x_diff = abs(current_location['x'] - tp_location['x'])
-    y_diff = abs(current_location['y'] - tp_location['y'])
-    z_diff = abs(current_location['z'] - tp_location['z'])
-    same_realm = current_location['realm'] == tp_location['realm']
+    x_diff = abs(current_location['x'] - destination['x'])
+    y_diff = abs(current_location['y'] - destination['y'])
+    z_diff = abs(current_location['z'] - destination['z'])
+    same_realm = current_location['realm'] == destination['realm']
     total = math.ceil(math.sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2) / TP_RANGE_PER_EMERALD +
                       (3 if not same_realm else 0))
     return total
@@ -65,7 +66,7 @@ def cooldown(server: Server, username: str, mode: str = None, value: int = None)
 
 def __cooldown_helper__(server: Server, username: str):
     now = datetime.datetime.now()
-    cd = server.player_data[username]['cooldowns']['tp'] if 'tp' in server.player_data[username]['cooldowns'] else now
+    cd = server.player_data[username]['tp']['cooldown'] if 'cooldown' in server.player_data[username]['tp'] else now
     if cd <= now:
         return None
     else:
