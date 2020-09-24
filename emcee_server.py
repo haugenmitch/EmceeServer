@@ -299,8 +299,9 @@ class Server:
         if location is None:
             self.warn_player(username, 'Your location could not be found')
             return
-        x, y, z = round(location['x'] - 0.5) + 0.5, round(location['y']), round(location['z'] - 0.5) + 0.5
+        x, y, z = round(location['x'] - 0.5) + 0.5, location['y'], round(location['z'] - 0.5) + 0.5
         self.server_data['jail'] = {'location': {'x': x, 'y': y, 'z': z, 'realm': location['realm']}, 'length': length}
+        self.laud_player(username, 'You have successfully set the jail location')
 
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
@@ -403,12 +404,12 @@ class Server:
                 self.player_data[username]['death_punishment']['timer'].cancel()
             self.online_players.remove(username)
 
-    def process_player_death(self, username, death_count):
-        self.player_data[username]['death_count'] = death_count
-        self.update_server_data_record()
-        self.send_command(f'tell {username} You have died {death_count} times')
+    def process_player_death(self, username):
         if 'jail' in self.server_data:
-            self.punish_player_death(username, death_count)
+            self.player_data[username]['death_count'] += 1
+            self.update_server_data_record()
+            self.tell_player(username, f'You have died {self.player_data[username]["death_count"]} times')
+            self.punish_player_death(username, self.player_data[username]['death_count'])
 
     def punish_player_death(self, username, death_count):
         with self.lock:
@@ -490,7 +491,7 @@ class Server:
                 return
             death_count = int(re.search(rf'{username} has (\d+) \[deaths]', death_count_string).group(1))
             if death_count != self.player_data[username]['death_count']:
-                self.process_player_death(username, death_count)
+                self.process_player_death(username)
 
     def create_new_player(self, username):
         self.player_data[username] = {}
