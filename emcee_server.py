@@ -56,7 +56,7 @@ class Server:
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
         self.max_memory = '-Xmx' + java['MaxMemory']
-        self.server_dir = java['ServerDir'] if java['ServerDir'] is not '' else (os.getcwd() + '/minecraft/')
+        self.server_dir = java['ServerDir'] if java['ServerDir'] != '' else (os.getcwd() + '/minecraft/')
         self.server_dir += '' if self.server_dir.endswith('/') else '/'
         self.sc = ['java', self.starting_memory, self.max_memory, '-jar', 'server.jar', 'nogui']
         self.process = None
@@ -291,7 +291,7 @@ class Server:
     def shrink_wall(self):
         wall_size = self.get_wall_size()
         min_size = self.server_data['wall']['min_size']
-        time_s = (wall_size - min_size) / 2 * 8640
+        time_s = int((wall_size - min_size) / 2 * 8640)
         self.send_command(f'worldborder set {min_size} {time_s}')
 
     def create_jail(self, username, length):
@@ -367,13 +367,16 @@ class Server:
             self.send_command(f'give {username} {self.player_guide}')
             self.give_starter_kit(username)
 
-        for objective in self.command_dict:
-            self.send_command(f'scoreboard players set {username} {objective} 0')
-            self.send_command(f'scoreboard players enable {username} {objective}')
-            self.send_command(f'scoreboard players set {username} {objective + "_cost"} 0')
-            self.send_command(f'scoreboard players enable {username} {objective + "_cost"}')
-            self.send_command(f'scoreboard players set {username} {objective + "_cooldown"} 0')
-            self.send_command(f'scoreboard players enable {username} {objective + "_cooldown"}')
+        for command in self.command_dict:
+            self.send_command(f'scoreboard players set {username} {command} 0')
+            self.send_command(f'scoreboard players enable {username} {command}')
+            self.send_command(f'scoreboard players set {username} {command + "_cost"} 0')
+            self.send_command(f'scoreboard players enable {username} {command + "_cost"}')
+            self.send_command(f'scoreboard players set {username} {command + "_cooldown"} 0')
+            self.send_command(f'scoreboard players enable {username} {command + "_cooldown"}')
+
+            if command not in self.player_data[username]:
+                self.player_data[username][command] = {}
 
         # setup death count for player
         self.send_command(f'scoreboard players set {username} deaths {self.player_data[username]["death_count"]}')
