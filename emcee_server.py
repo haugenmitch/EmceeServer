@@ -333,9 +333,13 @@ class Server:
 
     def get_player_item_count(self, username, item):
         cmd = f'clear {username} {item} 0'
-        output = rf'Found (?P<value>\d+) matching items on player {username}'
-        line, _success = self.get_output(cmd, output)
-        return int(re.search(output, line).group('value'))
+        success_output = rf'Found (?P<value>\d+) matching items on player {username}'
+        failure_output = f'No items were found on player {username}'
+        line, success = self.get_output(cmd, success_output, failure_output)
+        if success:
+            return int(re.search(success_output, line).group('value'))
+        else:
+            return 0
 
     def remove_player_items(self, username, item, count):
         if count < 1:
@@ -343,8 +347,8 @@ class Server:
         cmd = f'clear {username} {item} {count}'
         output = rf'Removed (?P<value>\d+) items from player {username}'
         fail_output = f'No items were found on player {username}'
-        line, _success = self.get_output(cmd, output, fail_output)
-        if re.search(fail_output, line) is not None:
+        line, success = self.get_output(cmd, output, fail_output)
+        if not success:
             return False
         removed_count = int(re.search(output, line).group('value'))
         if removed_count != count:
@@ -549,7 +553,7 @@ class Server:
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                        cwd=self.server_dir, text=True, bufsize=1, universal_newlines=True)
+                                        cwd=self.server_dir, bufsize=1, universal_newlines=True)
 
         self.start_timer()
 
