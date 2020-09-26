@@ -17,9 +17,18 @@ def execute(server: Server, username: str, mode: str = None, value: int = None):
         server.send_command(f'give {username} minecraft:emerald {WHITELIST_COST}')
         return False
     name = re.search(output, line).group('name')
-    server.send_command(f'whitelist add {name}')
-    server.laud_player(username, f'{name} has been invited')
-    return True
+    line, success = server.get_output(f'whitelist add {name}', rf'Added \w{{{len(name)}}} to the whitelist',
+                                      'That player does not exist|Player is already whitelisted')
+    if success:
+        server.laud_player(username, f'{name} has been invited')
+        return True
+    else:
+        if 'Player is already whitelisted' in line:
+            server.tell_player(username, f'{name} has already been invited')
+        else:
+            server.warn_player(username, f'{name} could not be invited')
+        server.send_command(f'give {username} minecraft:emerald {WHITELIST_COST}')
+        return False
 
 
 def cost(server: Server, username: str, mode: str = None, value: int = None):
