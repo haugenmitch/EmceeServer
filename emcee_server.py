@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -26,13 +27,6 @@ class Server:
                                                                                               'levelname)s:%('
                                                                                               'message)s',
                             level=logging.INFO)
-
-        try:
-            with open('server_properties.json', 'r') as spf:
-                properties = json.loads(spf.read())
-                self.mediumcore = properties['mediumcore']
-        except OSError:
-            print('Could not find or open server_properties.json')
 
         try:
             self.server_data_file = open('server_data.json', 'r+')
@@ -63,7 +57,7 @@ class Server:
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
         self.max_memory = '-Xmx' + java['MaxMemory']
-        self.server_dir = java['ServerDir'] if java['ServerDir'] is not '' else (os.getcwd() + '/minecraft/')
+        self.server_dir = java['ServerDir'] if java['ServerDir'] != '' else (os.getcwd() + '/minecraft/')
         self.server_dir += '' if self.server_dir.endswith('/') else '/'
         self.sc = ['java', self.starting_memory, self.max_memory, '-jar', 'server.jar', 'nogui']
         self.process = None
@@ -73,6 +67,8 @@ class Server:
         self.expected_outputs = {}
         self.lock = Condition(lock=RLock())
         self.online_players = []
+
+        self.cleanup_debug_folder()
 
     def recursive_datetime_parser(self, d):
         if type(d) is list:
@@ -97,6 +93,24 @@ class Server:
 
     def init_server_data(self):
         self.server_data = {'player_data': {}}
+
+    def cleanup_debug_folder(self):
+        if self.server_dir is None:
+            return
+        debug_dir = self.server_dir + 'debug'
+        for filename in os.listdir(debug_dir):
+            filepath = os.path.join(debug_dir, filename)
+            try:
+                if os.path.isfile(filepath) or os.path.islink(filepath):
+                    creation_datetime = datetime.strptime(filename, 'debug-report-%Y-%m-%d_%H.%M.%S.zip')
+                    if (datetime.now() - creation_datetime) > timedelta(days=5):
+                        os.remove(filepath)
+                elif os.path.isdir(filepath):
+                    creation_datetime = datetime.strptime(filename, 'debug-report-%Y-%m-%d_%H.%M.%S')
+                    if (datetime.now() - creation_datetime) > timedelta(days=5):
+                        shutil.rmtree(filepath)
+            except OSError as e:
+                logging.error(f'Failed to remove {filepath} because: {e}')
 
     def terminate(self, _signal_number, _frame):
         self.stop_server()
@@ -269,6 +283,12 @@ class Server:
                     self.create_wall(username, size)
                 except (ValueError, TypeError, IndexError):
                     self.warn_player(username, 'create_wall requires an integer size argument')
+            elif tokens[0] == 'create_jail':
+                try:
+                    length = int(tokens[1])
+                    self.create_jail(username, length)
+                except (ValueError, TypeError, IndexError):
+                    self.warn_player(username, 'create_wall requires an integer length argument')
             else:
                 self.send_command(command)
         else:
@@ -278,6 +298,7 @@ class Server:
         location = self.get_player_location(username)
         if location is None:
             self.warn_player(username, 'Your location could not be found')
+            return
         x, z = float(round(location['x'])), float(round(location['z']))
         self.send_command(f'worldborder center {x} {z}')
         self.send_command(f'worldborder set {size}')
@@ -291,8 +312,17 @@ class Server:
     def shrink_wall(self):
         wall_size = self.get_wall_size()
         min_size = self.server_data['wall']['min_size']
-        time_s = (wall_size - min_size) / 2 * 8640
+        time_s = int((wall_size - min_size) / 2 * 8640)
         self.send_command(f'worldborder set {min_size} {time_s}')
+
+    def create_jail(self, username, length):
+        location = self.get_player_location(username)
+        if location is None:
+            self.warn_player(username, 'Your location could not be found')
+            return
+        x, y, z = round(location['x'] - 0.5) + 0.5, location['y'], round(location['z'] - 0.5) + 0.5
+        self.server_data['jail'] = {'location': {'x': x, 'y': y, 'z': z, 'realm': location['realm']}, 'length': length}
+        self.laud_player(username, 'You have successfully set the jail location')
 
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
@@ -324,9 +354,13 @@ class Server:
 
     def get_player_item_count(self, username, item):
         cmd = f'clear {username} {item} 0'
-        output = rf'Found (?P<value>\d+) matching items on player {username}'
-        line, _success = self.get_output(cmd, output)
-        return int(re.search(output, line).group('value'))
+        success_output = rf'Found (?P<value>\d+) matching items on player {username}'
+        failure_output = f'No items were found on player {username}'
+        line, success = self.get_output(cmd, success_output, failure_output)
+        if success:
+            return int(re.search(success_output, line).group('value'))
+        else:
+            return 0
 
     def remove_player_items(self, username, item, count):
         if count < 1:
@@ -334,8 +368,8 @@ class Server:
         cmd = f'clear {username} {item} {count}'
         output = rf'Removed (?P<value>\d+) items from player {username}'
         fail_output = f'No items were found on player {username}'
-        line, _success = self.get_output(cmd, output, fail_output)
-        if re.search(fail_output, line) is not None:
+        line, success = self.get_output(cmd, output, fail_output)
+        if not success:
             return False
         removed_count = int(re.search(output, line).group('value'))
         if removed_count != count:
@@ -358,13 +392,16 @@ class Server:
             self.send_command(f'give {username} {self.player_guide}')
             self.give_starter_kit(username)
 
-        for objective in self.command_dict:
-            self.send_command(f'scoreboard players set {username} {objective} 0')
-            self.send_command(f'scoreboard players enable {username} {objective}')
-            self.send_command(f'scoreboard players set {username} {objective + "_cost"} 0')
-            self.send_command(f'scoreboard players enable {username} {objective + "_cost"}')
-            self.send_command(f'scoreboard players set {username} {objective + "_cooldown"} 0')
-            self.send_command(f'scoreboard players enable {username} {objective + "_cooldown"}')
+        for command in self.command_dict:
+            self.send_command(f'scoreboard players set {username} {command} 0')
+            self.send_command(f'scoreboard players enable {username} {command}')
+            self.send_command(f'scoreboard players set {username} {command + "_cost"} 0')
+            self.send_command(f'scoreboard players enable {username} {command + "_cost"}')
+            self.send_command(f'scoreboard players set {username} {command + "_cooldown"} 0')
+            self.send_command(f'scoreboard players enable {username} {command + "_cooldown"}')
+
+            if command not in self.player_data[username]:
+                self.player_data[username][command] = {}
 
         # setup death count for player
         self.send_command(f'scoreboard players set {username} deaths {self.player_data[username]["death_count"]}')
@@ -395,18 +432,19 @@ class Server:
                 self.player_data[username]['death_punishment']['timer'].cancel()
             self.online_players.remove(username)
 
-    def process_player_death(self, username, death_count):
-        self.player_data[username]['death_count'] = death_count
-        self.update_server_data_record()
-        self.send_command(f'tell {username} You have died {death_count} times')
-        self.punish_player_death(username, death_count)
+    def process_player_death(self, username):
+        if 'jail' in self.server_data:
+            self.player_data[username]['death_count'] += 1
+            self.update_server_data_record()
+            self.tell_player(username, f'You have died {self.player_data[username]["death_count"]} times')
+            self.punish_player_death(username, self.player_data[username]['death_count'])
 
     def punish_player_death(self, username, death_count):
         with self.lock:
             self.player_data[username]['death_punishment'] = {'location': None, 'end_time': None, 'timer': None,
                                                               'imprisoned': False}
 
-            punishment_length = death_count * self.mediumcore['length']
+            punishment_length = death_count * self.server_data['jail']['length']
             end_time = datetime.now() + timedelta(seconds=punishment_length)
             timer = Timer(punishment_length, self.end_punishment, (username,))
             self.player_data[username]['death_punishment']['timer'] = timer
@@ -424,10 +462,10 @@ class Server:
         with self.lock:
             self.player_data[username]['death_punishment']['location'] = location
 
-        realm = self.mediumcore['coordinates']['realm']
-        x = self.mediumcore['coordinates']['x']
-        y = self.mediumcore['coordinates']['y']
-        z = self.mediumcore['coordinates']['z']
+        realm = self.server_data['jail']['location']['realm']
+        x = self.server_data['jail']['location']['x']
+        y = self.server_data['jail']['location']['y']
+        z = self.server_data['jail']['location']['z']
         _line, success = self.get_output(command=f'execute in {realm} run tp {username} {x} {y} {z}',
                                          success_output=f'Teleported {username} to',
                                          failure_output='No entity was found', timeout=3.0)
@@ -481,7 +519,7 @@ class Server:
                 return
             death_count = int(re.search(rf'{username} has (\d+) \[deaths]', death_count_string).group(1))
             if death_count != self.player_data[username]['death_count']:
-                self.process_player_death(username, death_count)
+                self.process_player_death(username)
 
     def create_new_player(self, username):
         self.player_data[username] = {}
@@ -536,7 +574,7 @@ class Server:
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                        cwd=self.server_dir, text=True, bufsize=1, universal_newlines=True)
+                                        cwd=self.server_dir, bufsize=1, universal_newlines=True)
 
         self.start_timer()
 
