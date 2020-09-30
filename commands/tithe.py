@@ -3,7 +3,16 @@ from emcee_server import Server
 
 
 def execute(server: Server, username: str, mode: str = None, value: int = None):
-    return False
+    tithe_cost = __cost_helper__(server, username)
+    if server.get_player_item_count(username, 'minecraft:emerald') < tithe_cost or not \
+            server.remove_player_items(username, 'minecraft:emerald', tithe_cost):
+        server.warn_player(username, 'You do not have enough emeralds')
+        return False
+    if server.player_data[username]['tithe']['count'] >= server.player_data[username]['death_count']:
+        server.warn_player(username, 'You cannot tithe more times than you\'ve died')
+        return False
+    server.player_data['tithe']['count'] += 1
+    return True
 
 
 def cost(server: Server, username: str, mode: str = None, value: int = None):
@@ -13,24 +22,11 @@ def cost(server: Server, username: str, mode: str = None, value: int = None):
 
 
 def __cost_helper__(server: Server, username: str):
-    return 1
+    tithe_count = server.player_data[username]['tithe']['count'] if 'count' in server.player_data[username]['tithe'] \
+        else None
+    return 1 if tithe_count is None else tithe_count + 1
 
 
 def cooldown(server: Server, username: str, mode: str = None, value: int = None):
-    cd = __cooldown_helper__(server, username)
-    if cooldown is None:
-        server.tell_player(username, '[Tithe] is ready to use')
-        return True
-    else:
-        server.tell_player(username, f'[Tithe] cooldown time remaining: {str(cd).split(".", 2)[0]}')
-        return False
-
-
-def __cooldown_helper__(server: Server, username: str):
-    now = datetime.datetime.now()
-    cd = server.player_data[username]['cooldowns']['tithe'] if 'tithe' in server.player_data[username]['cooldowns'] \
-        else now
-    if cd <= now:
-        return None
-    else:
-        return cd - now
+    server.tell_player(username, '[Tithe] is ready to use')
+    return True

@@ -443,8 +443,9 @@ class Server:
         with self.lock:
             self.player_data[username]['death_punishment'] = {'location': None, 'end_time': None, 'timer': None,
                                                               'imprisoned': False}
-
-            punishment_length = death_count * self.server_data['jail']['length']
+            tithe_count = 0 if 'count' not in self.server_data[username]['tithe'] \
+                else self.server_data[username]['tithe']['count']
+            punishment_length = (death_count - tithe_count) * self.server_data['jail']['length']
             end_time = datetime.now() + timedelta(seconds=punishment_length)
             timer = Timer(punishment_length, self.end_punishment, (username,))
             self.player_data[username]['death_punishment']['timer'] = timer
