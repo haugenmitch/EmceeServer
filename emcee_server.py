@@ -61,8 +61,6 @@ class Server:
         for command in command_list:
             self.command_dict[command] = getattr(commands, command)
 
-        self.cleanup_debug_folder()
-
         java = self.config['Java']
         self.starting_memory = '-Xms' + java['StartingMemory']
         self.max_memory = '-Xmx' + java['MaxMemory']
@@ -76,6 +74,8 @@ class Server:
         self.expected_outputs = {}
         self.lock = Condition(lock=RLock())
         self.online_players = []
+
+        self.cleanup_debug_folder()
 
     def recursive_datetime_parser(self, d):
         if type(d) is list:
@@ -109,9 +109,13 @@ class Server:
             filepath = os.path.join(debug_dir, filename)
             try:
                 if os.path.isfile(filepath) or os.path.islink(filepath):
-                    os.remove(filepath)
+                    creation_datetime = datetime.strptime(filename, 'debug-report-%Y-%m-%d_%H.%M.%S.zip')
+                    if (datetime.now() - creation_datetime) > timedelta(days=5):
+                        os.remove(filepath)
                 elif os.path.isdir(filepath):
-                    shutil.rmtree(filepath)
+                    creation_datetime = datetime.strptime(filename, 'debug-report-%Y-%m-%d_%H.%M.%S')
+                    if (datetime.now() - creation_datetime) > timedelta(days=5):
+                        shutil.rmtree(filepath)
             except OSError as e:
                 logging.error(f'Failed to remove {filepath} because: {e}')
 
