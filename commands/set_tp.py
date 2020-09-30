@@ -17,11 +17,11 @@ def execute(server: Server, username: str, mode: str = None, value: int = None):
             server.remove_player_items(username, 'minecraft:emerald', SET_TP_COST):
         server.warn_player(username, 'You do not have enough emeralds')
         return False
-    server.player_data[username]['tp'] = {'x': location['x'], 'y': location['y'], 'z': location['z'],
-                                          'realm': location['realm']}
+    server.player_data[username]['tp']['destination'] = {'x': location['x'], 'y': location['y'], 'z': location['z'],
+                                                         'realm': location['realm']}
     server.laud_player(username, 'Teleport location set')
-    server.player_data[username]['cooldowns']['set_tp'] = datetime.datetime.now() \
-                                                          + datetime.timedelta(seconds=SET_TP_DELAY_S)
+    server.player_data[username]['set_tp']['cooldown'] = datetime.datetime.now() \
+                                                         + datetime.timedelta(seconds=SET_TP_DELAY_S)
 
     return True
 
@@ -43,7 +43,7 @@ def cooldown(server: Server, username: str, mode: str = None, value: int = None)
 
 def __cooldown_helper__(server: Server, username: str):
     now = datetime.datetime.now()
-    cd = server.player_data[username]['cooldowns']['set_tp'] if 'set_tp' in server.player_data[username]['cooldowns'] \
+    cd = server.player_data[username]['set_tp']['cooldown'] if 'cooldown' in server.player_data[username]['set_tp'] \
         else now
     if cd <= now:
         return None
