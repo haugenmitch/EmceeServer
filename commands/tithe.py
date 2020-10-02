@@ -8,10 +8,15 @@ def execute(server: Server, username: str, mode: str = None, value: int = None):
             server.remove_player_items(username, 'minecraft:emerald', tithe_cost):
         server.warn_player(username, 'You do not have enough emeralds')
         return False
-    if server.player_data[username]['tithe']['count'] >= server.player_data[username]['death_count']:
+    tithe_count = server.player_data[username]['tithe']['count'] if 'count' in server.player_data[username]['tithe'] \
+        else None
+    if tithe_count is None:
+        tithe_count = server.player_data[username]['tithe']['count'] = 0
+    if tithe_count >= server.player_data[username]['death_count']:
         server.warn_player(username, 'You cannot tithe more times than you\'ve died')
+        server.send_command(f'give {username} minecraft:emerald {tithe_cost}')
         return False
-    server.player_data['tithe']['count'] += 1
+    server.player_data[username]['tithe']['count'] += 1
     return True
 
 
