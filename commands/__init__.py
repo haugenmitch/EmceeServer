@@ -4,3 +4,4 @@ from . import wall
 from . import tithe
 from . import invite
 from . import freedom
+from . import collect
