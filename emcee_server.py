@@ -451,10 +451,13 @@ class Server:
 
     def process_player_death(self, username):
         if 'jail' in self.server_data:
-            self.player_data[username]['death_count'] += 1
-            self.update_server_data_record()
-            self.tell_player(username, f'You have died {self.player_data[username]["death_count"]} times')
-            self.punish_player_death(username, self.player_data[username]['death_count'])
+            if 'death_punishment' in self.player_data[username]:
+                self.teleport_to_jail(username)  # teleport back to jail if player died in jail
+            else:
+                self.player_data[username]['death_count'] += 1
+                self.update_server_data_record()
+                self.tell_player(username, f'You have died {self.player_data[username]["death_count"]} times')
+                self.punish_player_death(username, self.player_data[username]['death_count'])
 
     def punish_player_death(self, username, death_count):
         with self.lock:
@@ -480,6 +483,15 @@ class Server:
         with self.lock:
             self.player_data[username]['death_punishment']['location'] = location
 
+        if self.teleport_to_jail(username):
+            with self.lock:
+                self.player_data[username]['death_punishment']['imprisoned'] = True
+            return True
+        return False
+
+    def teleport_to_jail(self, username):
+        if 'jail' not in self.server_data or 'location' not in self.server_data['jail']:
+            return False
         realm = self.server_data['jail']['location']['realm']
         x = self.server_data['jail']['location']['x']
         y = self.server_data['jail']['location']['y']
@@ -487,12 +499,7 @@ class Server:
         _line, success = self.get_output(command=f'execute in {realm} run tp {username} {x} {y} {z}',
                                          success_output=f'Teleported {username} to',
                                          failure_output='No entity was found', timeout=3.0)
-        if success:
-            with self.lock:
-                self.player_data[username]['death_punishment']['imprisoned'] = True
-            return True
-
-        return False
+        return success
 
     def end_punishment(self, username):
         with self.lock:
