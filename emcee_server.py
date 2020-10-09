@@ -491,6 +491,16 @@ class Server:
         x = location['x']
         y = location['y']
         z = location['z']
+        if 'wall' in self.server_data and 'center' in self.server_data['wall']:
+            center_x, center_z = self.server_data['wall']['center']['x'], self.server_data['wall']['center']['z']
+            radius = self.get_wall_size() / 2
+            min_x, max_x = center_x - radius, center_x + radius
+            min_z, max_z = center_z - radius, center_z + radius
+            if x < min_x or x > max_x or z < min_z or z > max_z:
+                self.send_command(f'tp {username} ~ ~ ~')
+                self.tell_player(username, 'You have been teleported to spawn--your respawn point is outside the '
+                                           'world border')
+                return
         self.send_command(f'execute in {realm} run tp {username} {x} {y} {z}')
 
     def parse_server_info(self, line):
