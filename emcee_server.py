@@ -2,6 +2,7 @@ import configparser
 import csv
 import json
 import logging
+import math
 import os
 import re
 import shutil
@@ -318,11 +319,24 @@ class Server:
         line, _success = self.get_output('worldborder get', output)
         return int(re.search(output, line).group('size'))
 
-    def shrink_wall(self):
-        wall_size = self.get_wall_size()
+    def shrink_wall(self, execute_if_growing=False):
+        if not execute_if_growing:
+            return  # this stops the wall from starting a shrink in the middle of a grow if a user logs on/off
+        current_wall_size = self.get_wall_size()
         min_size = self.server_data['wall']['min_size']
-        time_s = int((wall_size - min_size) / 2 * 8640)
+        radius_decrease_amount = round((current_wall_size - min_size) / 2)
+        if radius_decrease_amount <= 0:
+            return  # don't shrink if no room to shrink
+        # continuing on if there is room to shrink
+        online_player_count = len(self.online_players)
+        if online_player_count == 0:
+            if not self.server_data['wall']['growing']:
+                self.send_command(f'worldborder add -0.00001')  # stop shrink if shrinking and last person logs off
+            return  # Don't start shrinking if no players online to drive shrinking
+        seconds_per_meter = 360
+        time_s = round(radius_decrease_amount * seconds_per_meter / math.sqrt(online_player_count))
         self.send_command(f'worldborder set {min_size} {time_s}')
+        self.server_data['wall']['growing'] = False
 
     def create_jail(self, username, length):
         location = self.get_player_location(username)
@@ -426,6 +440,7 @@ class Server:
         self.player_data[username]['log_ons'].append(datetime.now())
         self.update_server_data_record()
         self.online_players.append(username)
+        self.shrink_wall()
         if 'death_punishment' in self.player_data[username]:
             now = datetime.now()
             end_time = self.player_data[username]['death_punishment']['end_time']
@@ -448,6 +463,7 @@ class Server:
             if 'death_punishment' in self.player_data[username]:
                 self.player_data[username]['death_punishment']['timer'].cancel()
             self.online_players.remove(username)
+            self.shrink_wall()
 
     def process_player_death(self, username):
         if 'jail' in self.server_data:
