@@ -289,6 +289,15 @@ class Server:
                     self.create_jail(username, length)
                 except (ValueError, TypeError, IndexError):
                     self.warn_player(username, 'create_wall requires an integer length argument')
+            elif tokens[0] == 'reset_deaths':
+                try:
+                    user = tokens[1]
+                    if self.reset_deaths(user):
+                        self.laud_player(username, f'Death count for {user} has been reset')
+                    else:
+                        self.warn_player(username, f'{user} could not be found or have their death count reset')
+                except IndexError:
+                    self.warn_player(username, 'reset_deaths requires a username argument')
             else:
                 self.send_command(command)
         else:
@@ -323,6 +332,14 @@ class Server:
         x, y, z = round(location['x'] - 0.5) + 0.5, location['y'], round(location['z'] - 0.5) + 0.5
         self.server_data['jail'] = {'location': {'x': x, 'y': y, 'z': z, 'realm': location['realm']}, 'length': length}
         self.laud_player(username, 'You have successfully set the jail location')
+
+    def reset_deaths(self, username):
+        if username not in self.player_data:
+            return False
+        self.player_data[username]['death_count'] = 0
+        self.player_data[username]['tithe']['count'] = 0
+        self.send_command(f'scoreboard players set {username} deaths 0')
+        return True
 
     def parse_command_message(self, line):
         if line.startswith('[Server]'):  # server message
