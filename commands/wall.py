@@ -25,10 +25,9 @@ def execute(server: Server, username: str, mode: str = None, value: int = None):
     # See https://bugs.mojang.com/browse/MC-200233 for more.
     server.send_command(f'worldborder add {EPSILON:.5f}')
     server.send_command(f'worldborder add {BLOCKS_PER_CALL-EPSILON} {GROWTH_TIME_S}')
-    server.server_data['wall']['growing'] = True
     server.server_data['wall']['cooldown'] = datetime.datetime.now() + datetime.timedelta(seconds=GROWTH_TIME_S)
-    server.server_data['wall']['timer'] = Timer(GROWTH_TIME_S, server.shrink_wall, (True, ))
-    server.server_data['wall']['timer'].start()
+    Timer(GROWTH_TIME_S, server.shrink_wall).start()
+    server.server_data['wall']['shrinking'] = False
     return True
 
 

@@ -125,7 +125,6 @@ class Server:
 
         for username in self.online_players:
             self.send_command(f'kick {username} Server is shutting down')
-        self.update_server_data_record()
 
         if self.process is not None:
             self.send_command('stop')
@@ -319,9 +318,13 @@ class Server:
         line, _success = self.get_output('worldborder get', output)
         return int(re.search(output, line).group('size'))
 
-    def shrink_wall(self, execute_if_growing=False):
-        if not execute_if_growing:
-            return  # this stops the wall from starting a shrink in the middle of a grow if a user logs on/off
+    def shrink_wall(self):
+        if 'wall' not in self.server_data:
+            return  # server world border hasn't been created yet
+        diff = (self.server_data['wall']['cooldown'] - datetime.now()).total_seconds()
+        if diff > 0:
+            Timer(diff, self.shrink_wall).start()
+            return  # don't start a shrink while the border is growing
         current_wall_size = self.get_wall_size()
         min_size = self.server_data['wall']['min_size']
         radius_decrease_amount = round((current_wall_size - min_size) / 2)
@@ -330,13 +333,15 @@ class Server:
         # continuing on if there is room to shrink
         online_player_count = len(self.online_players)
         if online_player_count == 0:
-            if not self.server_data['wall']['growing']:
+            if self.server_data['wall']['shrinking'] if 'shrinking' in self.server_data['wall'] else False:
                 self.send_command(f'worldborder add -0.00001')  # stop shrink if shrinking and last person logs off
-            return  # Don't start shrinking if no players online to drive shrinking
+                self.server_data['wall']['shrinking'] = False
+            return  # Don't shrink if no players online to drive shrinking
         seconds_per_meter = 360
         time_s = round(radius_decrease_amount * seconds_per_meter / math.sqrt(online_player_count))
+        self.send_command(f'worldborder add -0.00001')  # reset shrink speed. See 'wall' command for more information.
         self.send_command(f'worldborder set {min_size} {time_s}')
-        self.server_data['wall']['growing'] = False
+        self.server_data['wall']['shrinking'] = True
 
     def create_jail(self, username, length):
         location = self.get_player_location(username)
@@ -615,6 +620,7 @@ class Server:
 
         self.send_command(f'scoreboard objectives add deaths deathCount')
         self.send_command('gamerule doImmediateRespawn true')
+        self.shrink_wall()  # Stop wall shrink if players stayed on until previous server shutdown
 
     def run(self):
         self.process = subprocess.Popen(self.sc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -653,6 +659,8 @@ class Server:
             print()  # Last command entry never got filled
         server_start.join(timeout=0)
         self.timer.cancel()
+
+        self.update_server_data_record()
         self.server_data_file.close()
 
         if self.is_shutting_down:
